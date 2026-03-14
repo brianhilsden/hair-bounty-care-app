@@ -1,0 +1,13 @@
+app/(tabs)/explore/blog/[slug].tsx(42,40): error TS2322: Type '"none"' is not assignable to type '"sm" | "md" | "lg" | "full" | undefined'.
+app/(tabs)/explore/blog/index.tsx(213,40): error TS2322: Type '"none"' is not assignable to type '"sm" | "md" | "lg" | "full" | undefined'.
+app/(tabs)/explore/index.tsx(234,60): error TS2322: Type '"xl"' is not assignable to type '"sm" | "md" | "lg" | "full" | undefined'.
+app/(tabs)/explore/products/cart.tsx(65,23): error TS2345: Argument of type 'PromoCode | undefined' is not assignable to parameter of type 'SetStateAction<PromoCode | null>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<PromoCode | null>'.
+app/(tabs)/home/notifications.tsx(106,12): error TS2345: Argument of type '{ message: string; type: string; }' is not assignable to parameter of type 'string'.
+app/notifications/index.ts(6,35): error TS2322: Type 'Promise<{ shouldShowAlert: true; shouldPlaySound: true; shouldSetBadge: false; }>' is not assignable to type 'Promise<NotificationBehavior>'.
+  Type '{ shouldShowAlert: true; shouldPlaySound: true; shouldSetBadge: false; }' is missing the following properties from type 'NotificationBehavior': shouldShowBanner, shouldShowList
+hooks/useAuth.ts(15,34): error TS2339: Property 'accessToken' does not exist on type 'AuthResponse'.
+hooks/useAuth.ts(15,56): error TS2339: Property 'refreshToken' does not exist on type 'AuthResponse'.
+hooks/useAuth.ts(28,34): error TS2339: Property 'accessToken' does not exist on type 'AuthResponse'.
+hooks/useAuth.ts(28,56): error TS2339: Property 'refreshToken' does not exist on type 'AuthResponse'.
+hooks/useAuth.ts(37,27): error TS2554: Expected 1 arguments, but got 0.

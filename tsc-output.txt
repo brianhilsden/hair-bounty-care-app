@@ -1,0 +1,30 @@
+app/(onboarding)/hair-quiz.tsx(127,27): error TS2339: Property 'emoji' does not exist on type '{ readonly value: "TYPE_1A"; readonly label: "Type 1A"; readonly description: "Straight, fine hair"; readonly category: "Straight"; } | { readonly value: "TYPE_1B"; readonly label: "Type 1B"; readonly description: "Straight, medium texture"; readonly category: "Straight"; } | ... 22 more ... | { ...; }'.
+  Property 'emoji' does not exist on type '{ readonly value: "TYPE_1A"; readonly label: "Type 1A"; readonly description: "Straight, fine hair"; readonly category: "Straight"; }'.
+app/(onboarding)/hair-quiz.tsx(128,61): error TS2339: Property 'emoji' does not exist on type '{ readonly value: "TYPE_1A"; readonly label: "Type 1A"; readonly description: "Straight, fine hair"; readonly category: "Straight"; } | { readonly value: "TYPE_1B"; readonly label: "Type 1B"; readonly description: "Straight, medium texture"; readonly category: "Straight"; } | ... 22 more ... | { ...; }'.
+  Property 'emoji' does not exist on type '{ readonly value: "TYPE_1A"; readonly label: "Type 1A"; readonly description: "Straight, fine hair"; readonly category: "Straight"; }'.
+app/(tabs)/home/index.tsx(89,29): error TS2339: Property 'createdAt' does not exist on type 'User'.
+app/(tabs)/home/index.tsx(90,56): error TS2339: Property 'createdAt' does not exist on type 'User'.
+app/(tabs)/profile/index.tsx(147,34): error TS2339: Property 'curlPattern' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(149,68): error TS2339: Property 'density' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(150,65): error TS2339: Property 'porosity' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(152,34): error TS2339: Property 'strandThickness' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(155,34): error TS2339: Property 'scalpType' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(157,30): error TS2339: Property 'goals' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(158,15): error TS2339: Property 'goals' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(181,20): error TS2339: Property 'hairPhotoUrl' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(184,40): error TS2339: Property 'hairPhotoUrl' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(251,19): error TS2339: Property 'currentLength' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(251,44): error TS2339: Property 'targetLength' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(259,28): error TS2339: Property 'currentLength' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(265,34): error TS2339: Property 'currentLength' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(269,28): error TS2339: Property 'targetLength' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(275,34): error TS2339: Property 'targetLength' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(279,28): error TS2339: Property 'currentLength' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(279,53): error TS2339: Property 'targetLength' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(285,38): error TS2339: Property 'currentLength' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(285,62): error TS2339: Property 'targetLength' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(295,57): error TS2339: Property 'currentLength' does not exist on type '{}'.
+app/(tabs)/profile/index.tsx(295,81): error TS2339: Property 'targetLength' does not exist on type '{}'.
+app/(tabs)/progress/index.tsx(56,19): error TS18048: 'uploadResult.data' is possibly 'undefined'.
+app/(tabs)/routines/index.tsx(77,29): error TS2339: Property 'createdAt' does not exist on type 'User'.
+app/(tabs)/routines/index.tsx(78,56): error TS2339: Property 'createdAt' does not exist on type 'User'.
