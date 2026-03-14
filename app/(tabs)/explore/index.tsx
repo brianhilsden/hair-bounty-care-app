@@ -4,6 +4,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -135,7 +136,6 @@ export default function ExploreScreen() {
           contentContainerStyle={{ paddingHorizontal: 24, gap: 12 }}
         >
           {[
-            { emoji: "💈", label: "Salons", route: "/(tabs)/explore/salons" },
             {
               emoji: "🧴",
               label: "Products",
@@ -146,6 +146,8 @@ export default function ExploreScreen() {
               label: "DIY Oils",
               route: "/(tabs)/explore/products",
             },
+                        { emoji: "💈", label: "Salons", route: "/(tabs)/explore/salons" },
+
             { emoji: "📖", label: "Blog", route: "/(tabs)/explore/blog" },
           ].map((item) => (
             <TouchableOpacity
@@ -161,61 +163,7 @@ export default function ExploreScreen() {
           ))}
         </ScrollView>
 
-        {/* Salons preview */}
-        <View className="px-6 mb-6">
-          <SectionHeader
-            title="💈 Nearby Salons"
-            onSeeAll={() => router.push("/explore/salons")}
-          />
-          {salonsLoading ? (
-            <View className="gap-3">
-              {[0, 1, 2].map((i) => (
-                <Skeleton key={i} height={72} rounded="lg" />
-              ))}
-            </View>
-          ) : salons.length === 0 ? (
-            <TouchableOpacity
-              onPress={() => router.push('/explore/salons')}
-              className="bg-hair-bg-dark rounded-2xl p-5 items-center border border-hair-gold/10"
-            >
-              <Text className="text-4xl mb-2">💈</Text>
-              <Text className="text-white font-semibold mb-1">
-                Find Salons Near You
-              </Text>
-              <Text className="text-hair-gold text-sm">Browse salons →</Text>
-            </TouchableOpacity>
-          ) : (
-            <View className="gap-3">
-              {salons.map((salon) => (
-                <TouchableOpacity
-                  key={salon.id}
-                  onPress={() =>
-                    router.push(`/explore/salons/${salon.id}` as any)
-                  }
-                  activeOpacity={0.85}
-                >
-                  <View className="flex-row items-center bg-hair-bg-dark rounded-2xl px-4 py-3 border border-hair-gold/10">
-                    <View className="w-11 h-11 rounded-xl bg-hair-gold/20 items-center justify-center mr-3">
-                      <Text className="text-2xl">💈</Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text
-                        className="text-white font-semibold text-sm"
-                        numberOfLines={1}
-                      >
-                        {salon.name}
-                      </Text>
-                      <Text className="text-white/40 text-xs">
-                        {salon.city} · ⭐ {salon.rating.toFixed(1)}
-                      </Text>
-                    </View>
-                    <Text className="text-hair-gold text-base">→</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
+  
 
         {/* Recommended For You */}
         <View className="mb-6">
@@ -248,32 +196,27 @@ export default function ExploreScreen() {
                   }
                   activeOpacity={0.9}
                 >
-                  <LinearGradient
-                    colors={["rgba(210, 153, 74, 0.15)", "rgba(30,30,30,0.8)"]}
-                    className="w-60 rounded-2xl p-4 border border-hair-gold/20 mr-2"
-                  >
-                    <View className="flex-row items-start mb-3">
-                      <View className="w-12 h-12 bg-hair-gold/20 rounded-full items-center justify-center mr-3">
-                        <Text className="text-2xl">🧴</Text>
-                      </View>
-                      <View className="flex-1">
-                        <Text
-                          className="text-white font-bold text-sm"
-                          numberOfLines={2}
-                        >
-                          {rec.name}
-                        </Text>
-                        <Text className="text-hair-gold text-xs font-semibold">
-                          {rec.brand}
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="bg-black/40 p-2.5 rounded-xl border border-white/5">
-                      <Text className="text-white/70 text-xs italic">
-                        "{rec.reason}"
+                  <View className="w-44 rounded-2xl overflow-hidden border border-hair-gold/20">
+                    <Image
+                      source={{
+                        uri: rec.imageUrls?.[0] ??
+                          "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400",
+                      }}
+                      style={{ width: "100%", height: 110 }}
+                      resizeMode="cover"
+                    />
+                    <LinearGradient
+                      colors={["#2A1F1A", "#1A1310"]}
+                      style={{ padding: 10 }}
+                    >
+                      <Text className="text-white font-bold text-xs" numberOfLines={2}>
+                        {rec.name}
                       </Text>
-                    </View>
-                  </LinearGradient>
+                      <Text className="text-hair-gold text-xs font-semibold mt-1">
+                        KES {rec.price?.toLocaleString()}
+                      </Text>
+                    </LinearGradient>
+                  </View>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -321,15 +264,17 @@ export default function ExploreScreen() {
                   }
                   activeOpacity={0.85}
                 >
-                  <View className="bg-hair-bg-dark rounded-2xl border border-hair-gold/10 overflow-hidden w-32">
-                    <View className="h-20 bg-hair-gold/10 items-center justify-center">
-                      <Text className="text-4xl">🧴</Text>
-                    </View>
-                    <View className="p-2.5">
-                      <Text
-                        className="text-white text-xs font-semibold"
-                        numberOfLines={2}
-                      >
+                  <View className="rounded-2xl overflow-hidden border border-hair-gold/10 w-32">
+                    <Image
+                      source={{
+                        uri: product.imageUrls?.[0] ??
+                          "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400",
+                      }}
+                      style={{ width: "100%", height: 90 }}
+                      resizeMode="cover"
+                    />
+                    <View className="bg-hair-bg-dark p-2.5">
+                      <Text className="text-white text-xs font-semibold" numberOfLines={2}>
                         {product.name}
                       </Text>
                       <Text className="text-hair-gold text-xs font-bold mt-1">
@@ -386,6 +331,62 @@ export default function ExploreScreen() {
                       </Text>
                       <Text className="text-white/40 text-xs mt-1">
                         {post.readTime} min read · {post.category}
+                      </Text>
+                    </View>
+                    <Text className="text-hair-gold text-base">→</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+              {/* Salons preview */}
+        <View className="px-6 mb-6">
+          <SectionHeader
+            title="💈 Nearby Salons"
+            onSeeAll={() => router.push("/explore/salons")}
+          />
+          {salonsLoading ? (
+            <View className="gap-3">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} height={72} rounded="lg" />
+              ))}
+            </View>
+          ) : salons.length === 0 ? (
+            <TouchableOpacity
+              onPress={() => router.push('/explore/salons')}
+              className="bg-hair-bg-dark rounded-2xl p-5 items-center border border-hair-gold/10"
+            >
+              <Text className="text-4xl mb-2">💈</Text>
+              <Text className="text-white font-semibold mb-1">
+                Find Salons Near You
+              </Text>
+              <Text className="text-hair-gold text-sm">Browse salons →</Text>
+            </TouchableOpacity>
+          ) : (
+            <View className="gap-3">
+              {salons.map((salon) => (
+                <TouchableOpacity
+                  key={salon.id}
+                  onPress={() =>
+                    router.push(`/explore/salons/${salon.id}` as any)
+                  }
+                  activeOpacity={0.85}
+                >
+                  <View className="flex-row items-center bg-hair-bg-dark rounded-2xl px-4 py-3 border border-hair-gold/10">
+                    <View className="w-11 h-11 rounded-xl bg-hair-gold/20 items-center justify-center mr-3">
+                      <Text className="text-2xl">💈</Text>
+                    </View>
+                    <View className="flex-1">
+                      <Text
+                        className="text-white font-semibold text-sm"
+                        numberOfLines={1}
+                      >
+                        {salon.name}
+                      </Text>
+                      <Text className="text-white/40 text-xs">
+                        {salon.city} · ⭐ {salon.rating.toFixed(1)}
                       </Text>
                     </View>
                     <Text className="text-hair-gold text-base">→</Text>

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { router } from 'expo-router';
 import { tokenManager } from '../lib/api';
 
 export interface User {
@@ -67,6 +68,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       isAuthenticated: false,
       isLoading: false,
     });
+    router.replace('/(auth)/welcome');
   },
 
   checkAuth: async () => {

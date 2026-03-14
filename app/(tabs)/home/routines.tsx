@@ -10,6 +10,8 @@ import { EmptyState } from '../../../components/shared/EmptyState';
 import { GoalProgressRing } from '../../../components/shared/GoalProgressRing';
 import { routineApi, TodayRoutine } from '../../../lib/api/routine';
 import { gamificationApi } from '../../../lib/api/gamification';
+import type { ApiResponse } from '../../../lib/api';
+import { useToast } from '../../../components/ui/Toast';
 import { useState } from 'react';
 
 // Group routines by category
@@ -59,15 +61,44 @@ export default function RoutinesScreen() {
     queryFn: gamificationApi.getUserBadges,
   });
 
+  const { showToast } = useToast();
+
   const logMutation = useMutation({
     mutationFn: (templateId: string) => routineApi.logRoutine(templateId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['routines', 'today'] });
-      queryClient.invalidateQueries({ queryKey: ['streak'] });
-      queryClient.invalidateQueries({ queryKey: ['routine', 'stats'] });
-      gamificationApi.checkBadges().then(() => {
-        queryClient.invalidateQueries({ queryKey: ['badges', 'me'] });
+
+    // 1. Snapshot current list and flip the checkbox instantly
+    onMutate: async (templateId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['routines', 'today'] });
+      const previous = queryClient.getQueryData<ApiResponse<TodayRoutine[]>>(['routines', 'today']);
+      queryClient.setQueryData<ApiResponse<TodayRoutine[]>>(['routines', 'today'], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: old.data.map((r) =>
+            r.id === templateId ? { ...r, completed: true, completedAt: new Date().toISOString() } : r
+          ),
+        };
       });
+      return { previous };
+    },
+
+    // 2. On success: sync streak (cheap) + invalidate badges lazily
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['streak'] });
+      queryClient.invalidateQueries({ queryKey: ['badges', 'me'] });
+    },
+
+    // 3. On error: roll back the optimistic tick and show a toast
+    onError: (_err, _templateId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['routines', 'today'], context.previous);
+      }
+      showToast('Could not log routine. Please try again.', 'error');
+    },
+
+    // 4. Always re-sync the server state once settled
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['routines', 'today'] });
     },
   });
 

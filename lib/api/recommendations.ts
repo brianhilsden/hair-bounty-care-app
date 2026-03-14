@@ -13,12 +13,12 @@ export interface HairstyleRec {
 export interface ProductRec {
   id: string;
   name: string;
-  brand: string;
-  imageUrl?: string;
+  brand?: string;
+  imageUrls?: string[];
   price: number;
-  currency: string;
+  currency?: string;
   rating: number;
-  reason: string;
+  reason?: string;
 }
 
 export interface DIYRecipe {

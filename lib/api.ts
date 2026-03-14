@@ -4,11 +4,11 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 // API Configuration
-const API_URL = __DEV__ 
-  ? Platform.OS === 'web' 
+const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (__DEV__
+  ? Platform.OS === 'web'
     ? 'http://localhost:5000/api/v1'
     : 'http://192.168.0.104:5000/api/v1'
-  : 'https://api.hairbountycare.com/api/v1';
+  : 'https://hair-bounty-care-backend.vercel.app/api/v1');
 
 // Create axios instance
 export const api = axios.create({
@@ -144,7 +144,7 @@ api.interceptors.response.use(
           refreshToken,
         });
 
-        const { accessToken, refreshToken: newRefreshToken } = response.data.data.tokens;
+        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
 
         await tokenManager.setTokens(accessToken, newRefreshToken);
 
@@ -157,9 +157,11 @@ api.interceptors.response.use(
         }
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, clear tokens and reject
+        // Refresh failed — clear tokens, reset auth state, redirect to welcome
         processQueue(refreshError, null);
         await tokenManager.clearTokens();
+        const { useAuthStore } = await import('../store/authStore');
+        useAuthStore.getState().logout();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

@@ -319,8 +319,23 @@ export default function ProfileScreen() {
               : "Update Profile"}
           </Button>
           <TouchableOpacity
+            onPress={() => router.push('/profile/my-routines')}
+            className="flex-row items-center bg-hair-bg-dark rounded-2xl px-5 py-4 border border-hair-gold/20"
+          >
+            <Text className="text-2xl mr-3">✅</Text>
+            <View className="flex-1">
+              <Text className="text-white font-semibold text-sm">
+                Customize Routines
+              </Text>
+              <Text className="text-white/50 text-xs">
+                Choose your daily checklist routines
+              </Text>
+            </View>
+            <Text className="text-hair-gold text-base">→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => router.push('/profile/reminders')}
-            className="flex-row items-center bg-hair-bg-dark rounded-2xl px-5 py-4 border border-hair-gold/20 mb-3"
+            className="flex-row items-center bg-hair-bg-dark rounded-2xl px-5 py-4 border border-hair-gold/20"
           >
             <Text className="text-2xl mr-3">🔔</Text>
             <View className="flex-1">

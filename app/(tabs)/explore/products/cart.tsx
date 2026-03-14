@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -149,8 +150,12 @@ export default function CartScreen() {
               key={item.productId}
               className="flex-row items-center bg-hair-bg-dark rounded-2xl p-4 border border-hair-gold/10"
             >
-              <View className="w-14 h-14 bg-hair-gold/10 rounded-xl items-center justify-center mr-3">
-                <Text className="text-3xl">🧴</Text>
+              <View className="w-14 h-14 rounded-xl overflow-hidden mr-3">
+                <Image
+                  source={{ uri: item.imageUrl ?? "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400" }}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="cover"
+                />
               </View>
               <View className="flex-1">
                 <Text

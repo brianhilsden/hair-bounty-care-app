@@ -91,7 +91,7 @@ export default function Index() {
       }).start();
     }, 1500);
 
-    const autoTimer = setTimeout(() => finish(), 12000);
+    const autoTimer = setTimeout(() => finish(), 4000);
 
     return () => {
       clearTimeout(skipTimer);

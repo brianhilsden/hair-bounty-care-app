@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Hair Bounty Care",
-    "slug": "hair-bounty-app",
+    "slug": "hairbountycare",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -35,13 +35,22 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#3F2D25"
+          "backgroundColor": "#3F2D25",
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain"
         }
       ],
       "expo-video"
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a832b731-442a-46dc-8b0a-8e16ae8c9dff"
+      }
+    },
+    "owner": "hilsden"
   }
 }

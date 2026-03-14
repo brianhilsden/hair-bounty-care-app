@@ -33,7 +33,7 @@ export const notificationsApi = {
   },
 
   async registerPushToken(token: string): Promise<ApiResponse<void>> {
-    const response = await api.post('/notifications/register-token', { token });
+    const response = await api.post('/notifications/register-token', { pushToken: token });
     return response.data;
   },
 };

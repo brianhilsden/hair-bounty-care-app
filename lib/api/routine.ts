@@ -7,6 +7,14 @@ export interface RoutineTemplate {
   description: string;
   category: string;
   isDefault: boolean;
+  frequency: 'daily' | 'weekly' | 'monthly';
+  isActive: boolean;
+  targetHairTypes: string[];
+  targetPorosities: string[];
+  targetGoals: string[];
+  estimatedMinutes: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RoutineLog {
@@ -73,6 +81,21 @@ export const routineApi = {
 
   async getStreak(): Promise<ApiResponse<Streak>> {
     const response = await api.get('/routines/streak');
+    return response.data;
+  },
+
+  async getMyRoutineTemplates(): Promise<ApiResponse<{ selected: RoutineTemplate[]; available: RoutineTemplate[] }>> {
+    const response = await api.get('/routines/my-routines');
+    return response.data;
+  },
+
+  async addRoutineTemplate(templateId: string): Promise<ApiResponse<void>> {
+    const response = await api.post('/routines/my-routines', { templateId });
+    return response.data;
+  },
+
+  async removeRoutineTemplate(templateId: string): Promise<ApiResponse<void>> {
+    const response = await api.delete(`/routines/my-routines/${templateId}`);
     return response.data;
   },
 };

@@ -1,5 +1,6 @@
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Compass, Sparkles, Users, CircleUserRound } from 'lucide-react-native';
 
 const GOLD = '#D2994A';
@@ -39,18 +40,20 @@ function TabIcon({ focused, Icon }: IconProps & { Icon: any }) {
 }
 
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
+        swipeEnabled: true,
         tabBarActiveTintColor: GOLD,
         tabBarInactiveTintColor: INACTIVE,
         tabBarStyle: {
           backgroundColor: '#2a1f1a',
           borderTopColor: '#3F2D25',
           borderTopWidth: 1,
-          height: 65,
-          paddingBottom: 8,
+          height: 65 + insets.bottom,
+          paddingBottom: 8 + insets.bottom,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
@@ -76,7 +79,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="advisor"
         options={{
-          title: 'Advisor',
+          title: 'Henzo AI',
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} Icon={Sparkles} />,
         }}
       />

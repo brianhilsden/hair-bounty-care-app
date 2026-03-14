@@ -8,6 +8,8 @@ export default function ProfileLayout() {
       <Stack.Screen name="progress" />
       <Stack.Screen name="subscription" />
       <Stack.Screen name="referrals" />
+      <Stack.Screen name="reminders" />
+      <Stack.Screen name="my-routines" />
       <Stack.Screen name="settings" />
     </Stack>
   );

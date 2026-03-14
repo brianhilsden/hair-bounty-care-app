@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Linking, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -50,13 +50,21 @@ export default function ProductDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-hair-bg">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-        {/* Image */}
-        <View className="h-56 bg-hair-gold/10 items-center justify-center">
-          <Text style={{ fontSize: 80 }}>🧴</Text>
-          <TouchableOpacity onPress={() => router.back()} className="absolute top-4 left-4 bg-black/40 rounded-full px-3 py-1.5">
+        {/* Hero image */}
+        <View className="h-56">
+          {product ? (
+            <Image
+              source={{ uri: product.imageUrls?.[0] ?? "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400" }}
+              style={{ width: "100%", height: "100%" }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="flex-1 bg-hair-gold/10" />
+          )}
+          <TouchableOpacity onPress={() => router.back()} className="absolute top-4 left-4 bg-black/50 rounded-full px-3 py-1.5">
             <Text className="text-white text-sm font-semibold">← Back</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/explore/products/cart')} className="absolute top-4 right-4 bg-black/40 rounded-full px-3 py-1.5 flex-row items-center gap-1">
+          <TouchableOpacity onPress={() => router.push('/explore/products/cart')} className="absolute top-4 right-4 bg-black/50 rounded-full px-3 py-1.5 flex-row items-center gap-1">
             <Text className="text-white text-sm">🛒</Text>
             {totalItems() > 0 && <Text className="text-white text-xs font-bold">{totalItems()}</Text>}
           </TouchableOpacity>

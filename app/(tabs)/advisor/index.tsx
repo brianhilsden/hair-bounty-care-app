@@ -159,7 +159,7 @@ function EmptyState({ firstName, onPrompt }: { firstName: string; onPrompt: (t: 
           <Text style={{ fontSize: 48 }}>✨</Text>
         </LinearGradient>
         <Text style={{ color: "#FFFFFF", fontSize: 26, fontWeight: "700", textAlign: "center", marginBottom: 8 }}>
-          Hey {firstName}! I'm Aria
+          Hey {firstName}! I'm Henzo
         </Text>
         <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 15, textAlign: "center", lineHeight: 22, maxWidth: 280 }}>
           Your personal AI hair advisor. Ask me anything about your hair care journey.
@@ -319,7 +319,7 @@ function RecentsDrawer({ visible, onClose, onSelect, onDelete, conversations, is
             <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 }}>
               <Text style={{ fontSize: 40, marginBottom: 16 }}>💬</Text>
               <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 15, textAlign: "center", lineHeight: 22 }}>
-                Your conversations with Aria will appear here.
+                Your conversations with Henzo will appear here.
               </Text>
             </View>
           ) : (
@@ -490,7 +490,7 @@ export default function AdvisorScreen() {
               <Text style={{ fontSize: 20 }}>✨</Text>
             </LinearGradient>
             <View>
-              <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "700" }}>Aria</Text>
+              <Text style={{ color: "#FFFFFF", fontSize: 17, fontWeight: "700" }}>Henzo</Text>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#4CAF50" }} />
                 <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 12 }}>AI Hair Advisor</Text>
@@ -589,7 +589,7 @@ export default function AdvisorScreen() {
             <TextInput
               value={input}
               onChangeText={setInput}
-              placeholder="Ask Aria anything about your hair..."
+              placeholder="Ask Henzo anything about your hair..."
               placeholderTextColor="rgba(255,255,255,0.3)"
               multiline
               maxLength={500}
@@ -612,7 +612,7 @@ export default function AdvisorScreen() {
             </TouchableOpacity>
           </View>
           <Text style={{ color: "rgba(255,255,255,0.2)", fontSize: 11, textAlign: "center", marginTop: 8 }}>
-            Aria can make mistakes. Always consult a professional for medical concerns.
+            Henzo can make mistakes. Always consult a professional for medical concerns.
           </Text>
         </View>
       </KeyboardAvoidingView>

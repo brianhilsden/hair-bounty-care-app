@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   TextInput,
   RefreshControl,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -42,8 +43,12 @@ function ProductCard({
       className="w-[47%]"
     >
       <View className="bg-hair-bg-dark rounded-2xl border border-hair-gold/10 overflow-hidden mb-4">
-        <View className="h-28 bg-hair-gold/10 items-center justify-center">
-          <Text style={{ fontSize: 48 }}>🧴</Text>
+        <View className="h-28">
+          <Image
+            source={{ uri: product.imageUrls?.[0] ?? "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400" }}
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="cover"
+          />
           {product.isEcoCertified && (
             <View className="absolute top-2 right-2 bg-emerald-500/80 rounded-full px-1.5 py-0.5">
               <Text className="text-white text-xs">♻️</Text>
