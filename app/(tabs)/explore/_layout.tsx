@@ -11,6 +11,8 @@ export default function ExploreLayout() {
       <Stack.Screen name="products/cart" />
       <Stack.Screen name="blog" />
       <Stack.Screen name="blog/[slug]" />
+      <Stack.Screen name="orders/index" />
+      <Stack.Screen name="orders/[id]" />
     </Stack>
   );
 }

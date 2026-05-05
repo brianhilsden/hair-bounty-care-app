@@ -45,7 +45,7 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        swipeEnabled: true,
+        swipeEnabled: false,
         tabBarActiveTintColor: GOLD,
         tabBarInactiveTintColor: INACTIVE,
         tabBarStyle: {

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "866485447090",
+    "project_id": "hair-bounty-care",
+    "storage_bucket": "hair-bounty-care.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:866485447090:android:ada47fa7f490d181da5cab",
+        "android_client_info": {
+          "package_name": "com.hairbountycare.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBi_d6XHoh32SRM11SATGPdbx9CYEgwPSI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

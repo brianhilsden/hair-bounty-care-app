@@ -23,6 +23,7 @@
         "backgroundColor": "#3F2D25"
       },
       "package": "com.hairbountycare.app",
+      "googleServicesFile": "./google-services.json",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -40,7 +41,15 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-video"
+      "expo-video",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#3F2D25",
+          "sounds": []
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

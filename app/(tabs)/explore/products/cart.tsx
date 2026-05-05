@@ -54,7 +54,10 @@ export default function CartScreen() {
       Alert.alert(
         "🎉 Order Placed!",
         `Order confirmed!\nYou'll receive updates on your delivery.`,
-        [{ text: "OK", onPress: () => router.back() }],
+        [
+          { text: "View Orders", onPress: () => router.replace('/explore/orders') },
+          { text: "OK", onPress: () => router.back() },
+        ],
       );
     },
     onError: () => showToast("Failed to place order. Try again.", "error"),

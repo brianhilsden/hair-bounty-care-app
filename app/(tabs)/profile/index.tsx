@@ -349,6 +349,17 @@ export default function ProfileScreen() {
             <Text className="text-hair-gold text-base">→</Text>
           </TouchableOpacity>
           <TouchableOpacity
+            onPress={() => router.push('/explore/orders')}
+            className="flex-row items-center bg-hair-bg-dark rounded-2xl px-5 py-4 border border-hair-gold/20"
+          >
+            <Text className="text-2xl mr-3">📦</Text>
+            <View className="flex-1">
+              <Text className="text-white font-semibold text-sm">My Orders</Text>
+              <Text className="text-white/50 text-xs">Track your purchases</Text>
+            </View>
+            <Text className="text-hair-gold text-base">→</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => router.push('/profile/referrals')}
             className="flex-row items-center bg-hair-bg-dark rounded-2xl px-5 py-4 border border-hair-gold/20"
           >
