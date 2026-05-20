@@ -44,12 +44,6 @@ export default function HairGoalsScreen() {
         // Ensure successful upload and extract URL from data
         if (uploadResult.success && uploadResult.data) {
           hairPhotoUrl = uploadResult.data.url;
-          console.log("Hair photo uploaded successfully:", hairPhotoUrl);
-        } else {
-          console.error(
-            "Hair photo upload failed or returned no data:",
-            uploadResult,
-          );
         }
       }
 

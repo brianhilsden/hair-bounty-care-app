@@ -64,16 +64,11 @@ export default function RootLayout() {
     if (!isAuthenticated) return;
     registerForPushNotificationsAsync()
       .then((token) => {
-        console.log('[PushToken] got token:', token);
         if (token) {
-          return notificationsApi.registerPushToken(token)
-            .then(() => console.log('[PushToken] registered successfully'))
-            .catch((err) => console.error('[PushToken] register failed:', err));
-        } else {
-          console.warn('[PushToken] no token returned — check permissions and projectId');
+          return notificationsApi.registerPushToken(token).catch(() => {});
         }
       })
-      .catch((err) => console.error('[PushToken] getExpoPushToken failed:', err));
+      .catch(() => {});
   }, [isAuthenticated]);
 
   return (

@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   productsApi,
   Product,
@@ -39,17 +39,26 @@ function ProductCard({
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={product.inStock ? 0.85 : 1}
       className="w-[47%]"
+      disabled={!product.inStock}
     >
-      <View className="bg-hair-bg-dark rounded-2xl border border-hair-gold/10 overflow-hidden mb-4">
+      <View className={`bg-hair-bg-dark rounded-2xl border overflow-hidden mb-4 ${product.inStock ? 'border-hair-gold/10' : 'border-white/5'}`}>
         <View className="h-28">
           <Image
             source={{ uri: product.imageUrls?.[0] ?? "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=400" }}
-            style={{ width: "100%", height: "100%" }}
+            style={{ width: "100%", height: "100%", opacity: product.inStock ? 1 : 0.4 }}
             resizeMode="cover"
           />
-          {product.isEcoCertified && (
+          {/* Out of stock overlay */}
+          {!product.inStock && (
+            <View className="absolute inset-0 items-center justify-center bg-black/40">
+              <View className="bg-black/70 rounded-full px-3 py-1">
+                <Text className="text-white/80 text-xs font-bold">Out of Stock</Text>
+              </View>
+            </View>
+          )}
+          {product.isEcoCertified && product.inStock && (
             <View className="absolute top-2 right-2 bg-emerald-500/80 rounded-full px-1.5 py-0.5">
               <Text className="text-white text-xs">♻️</Text>
             </View>
@@ -57,7 +66,7 @@ function ProductCard({
         </View>
         <View className="p-3">
           <Text
-            className="text-white text-sm font-semibold mb-0.5"
+            className={`text-sm font-semibold mb-0.5 ${product.inStock ? 'text-white' : 'text-white/40'}`}
             numberOfLines={2}
           >
             {product.name}
@@ -66,18 +75,20 @@ function ProductCard({
             {product.category.name}
           </Text>
           <View className="flex-row items-center justify-between">
-            <Text className="text-hair-gold font-bold text-sm">
+            <Text className={`font-bold text-sm ${product.inStock ? 'text-hair-gold' : 'text-white/30'}`}>
               KES {product.price.toLocaleString()}
             </Text>
-            <TouchableOpacity
-              onPress={(e) => {
-                e.stopPropagation();
-                onAddToCart();
-              }}
-              className="bg-hair-gold rounded-full w-7 h-7 items-center justify-center"
-            >
-              <Text className="text-white font-bold text-base">+</Text>
-            </TouchableOpacity>
+            {product.inStock && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onAddToCart();
+                }}
+                className="bg-hair-gold rounded-full w-7 h-7 items-center justify-center"
+              >
+                <Text className="text-white font-bold text-base">+</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -90,8 +101,15 @@ export default function ProductsScreen() {
   const queryClient = useQueryClient();
   const { addItem, totalItems } = useCartStore();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [sort, setSort] = useState<"default" | "price_asc" | "price_desc" | "rating">("default");
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { data: categoriesData } = useQuery({
     queryKey: ["product-categories"],
@@ -99,22 +117,32 @@ export default function ProductsScreen() {
   });
 
   const queryParams = {
-    search: search || undefined,
+    search: debouncedSearch || undefined,
     productType: typeFilter || undefined,
   };
 
   const { data, isLoading } = useQuery({
     queryKey: ["products", queryParams],
     queryFn: () => productsApi.getProducts(queryParams),
+    staleTime: 5 * 60 * 1000, // 5 min — product catalog changes infrequently
   });
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ["products"] });
-    setRefreshing(false);
+    try {
+      await queryClient.refetchQueries({ queryKey: ["products"] });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  const products = data?.data ?? [];
+  const rawProducts = data?.data ?? [];
+  const products = [...rawProducts].sort((a, b) => {
+    if (sort === "price_asc") return a.price - b.price;
+    if (sort === "price_desc") return b.price - a.price;
+    if (sort === "rating") return b.rating - a.rating;
+    return 0;
+  });
 
   const handleAddToCart = (product: Product) => {
     addItem({
@@ -164,7 +192,7 @@ export default function ProductsScreen() {
       </View>
 
       {/* Type filters */}
-      <View className="mb-3 h-10 flex-none">
+      <View className="mb-2 h-10 flex-none">
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -181,6 +209,32 @@ export default function ProductsScreen() {
                 className={`text-sm font-semibold ${typeFilter === f.key ? "text-white" : "text-white/60"}`}
               >
                 {f.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Sort row */}
+      <View className="mb-3 h-9 flex-none">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+        >
+          {[
+            { key: "default", label: "Default" },
+            { key: "price_asc", label: "Price ↑" },
+            { key: "price_desc", label: "Price ↓" },
+            { key: "rating", label: "⭐ Top Rated" },
+          ].map((s) => (
+            <TouchableOpacity
+              key={s.key}
+              onPress={() => setSort(s.key as typeof sort)}
+              className={`px-3 py-1.5 rounded-full border ${sort === s.key ? "bg-white/15 border-white/30" : "bg-transparent border-white/10"}`}
+            >
+              <Text className={`text-xs font-semibold ${sort === s.key ? "text-white" : "text-white/40"}`}>
+                {s.label}
               </Text>
             </TouchableOpacity>
           ))}

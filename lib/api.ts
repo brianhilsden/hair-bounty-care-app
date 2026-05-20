@@ -29,7 +29,6 @@ export const tokenManager = {
     const token = Platform.OS === 'web' 
       ? localStorage.getItem(ACCESS_TOKEN_KEY) 
       : await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
-    console.log('[TokenManager] getAccessToken:', token ? 'Found' : 'Missing');
     return token;
   },
 
@@ -41,7 +40,6 @@ export const tokenManager = {
   },
 
   async setTokens(accessToken: string, refreshToken: string): Promise<void> {
-    console.log('[TokenManager] setTokens calling with:', accessToken ? 'Valid Token' : 'Empty');
     if (Platform.OS === 'web') {
       localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
       localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
@@ -49,11 +47,9 @@ export const tokenManager = {
       await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
       await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
     }
-    console.log('[TokenManager] setTokens complete');
   },
 
   async clearTokens(): Promise<void> {
-    console.log('[TokenManager] clearTokens called');
     if (Platform.OS === 'web') {
       localStorage.removeItem(ACCESS_TOKEN_KEY);
       localStorage.removeItem(REFRESH_TOKEN_KEY);
@@ -69,7 +65,6 @@ api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     // Force wait for token retrieval
     const token = await tokenManager.getAccessToken();
-    console.log('[API] Request token:', token ? 'Found' : 'Missing', 'for URL:', config.url);
     if (token) {
       if (!config.headers) {
         config.headers = new axios.AxiosHeaders();

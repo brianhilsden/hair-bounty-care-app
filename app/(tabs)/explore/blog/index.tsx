@@ -5,11 +5,12 @@ import {
   TouchableOpacity,
   Image,
   RefreshControl,
+  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { blogApi, BlogPost } from "../../../../lib/api/blog";
 import { Skeleton } from "../../../../components/ui/Skeleton";
 import { EmptyState } from "../../../../components/shared/EmptyState";
@@ -122,42 +123,85 @@ export default function BlogListingScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { data: categoriesData } = useQuery({
     queryKey: ["blog", "categories"],
     queryFn: blogApi.getCategories,
+    staleTime: 30 * 60 * 1000, // 30 min — categories rarely change
   });
 
   const { data: postsData, isLoading } = useQuery({
     queryKey: ["blog", "posts", selectedCategory],
     queryFn: () =>
       blogApi.getPosts({ category: selectedCategory || undefined }),
+    staleTime: 15 * 60 * 1000, // 15 min — new posts don't appear by the minute
   });
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ["blog"] });
-    setRefreshing(false);
+    try {
+      await queryClient.refetchQueries({ queryKey: ["blog"] });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const categories = categoriesData?.data ?? ["Tips", "Products", "Routines"];
-  const posts = postsData?.data ?? [];
+  const allPosts = postsData?.data ?? [];
 
-  const featuredPost = posts.length > 0 ? posts[0] : null;
-  const regularPosts = posts.slice(1);
+  const isSearching = debouncedSearch.trim().length > 0;
+  const posts = isSearching
+    ? allPosts.filter((p) => {
+        const q = debouncedSearch.toLowerCase();
+        return (
+          p.title.toLowerCase().includes(q) ||
+          p.excerpt?.toLowerCase().includes(q) ||
+          p.author?.toLowerCase().includes(q) ||
+          p.category?.toLowerCase().includes(q)
+        );
+      })
+    : allPosts;
+
+  const featuredPost = !isSearching && posts.length > 0 ? posts[0] : null;
+  const regularPosts = isSearching ? posts : posts.slice(1);
 
   return (
     <SafeAreaView className="flex-1 bg-hair-bg">
       {/* Header */}
-      <View className="px-6 py-4 flex-row items-center justify-between border-b border-hair-gold/10 bg-hair-bg-dark">
-        <View className="flex-row items-center">
-          <TouchableOpacity onPress={() => router.back()} className="mr-4 p-1">
+      <View className="px-4 pt-4 pb-3 bg-hair-bg-dark border-b border-hair-gold/10">
+        <View className="flex-row items-center mb-3">
+          <TouchableOpacity onPress={() => router.back()} className="mr-3 p-1">
             <Text className="text-hair-gold text-lg font-bold">←</Text>
           </TouchableOpacity>
-          <Text className="text-lg font-bold text-white">
+          <Text className="text-lg font-bold text-white flex-1">
             Hair Tips & Blog 📖
           </Text>
+        </View>
+        <View className="flex-row items-center bg-hair-bg rounded-2xl px-4 py-2.5 border border-hair-gold/20">
+          <Text className="text-white/40 mr-2">🔍</Text>
+          <TextInput
+            value={search}
+            onChangeText={(v) => {
+              setSearch(v);
+              if (v.trim()) setSelectedCategory(null);
+            }}
+            placeholder="Search articles..."
+            placeholderTextColor="#7a6a5a"
+            className="flex-1 text-white text-sm"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")}>
+              <Text className="text-white/40 text-base">✕</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -234,9 +278,9 @@ export default function BlogListingScreen() {
           ) : posts.length === 0 ? (
             <View className="mt-10">
               <EmptyState
-                emoji="📝"
-                title="No articles found"
-                description="Check back soon for new articles!"
+                emoji={isSearching ? "🔍" : "📝"}
+                title={isSearching ? `No results for "${debouncedSearch}"` : "No articles found"}
+                description={isSearching ? "Try different keywords" : "Check back soon for new articles!"}
               />
             </View>
           ) : (
@@ -255,7 +299,7 @@ export default function BlogListingScreen() {
               {regularPosts.length > 0 && (
                 <View className="mt-2">
                   <Text className="text-white text-lg font-bold mb-4">
-                    More Articles
+                    {isSearching ? `Results for "${debouncedSearch}"` : "More Articles"}
                   </Text>
                   {regularPosts.map((post) => (
                     <RegularPostCard

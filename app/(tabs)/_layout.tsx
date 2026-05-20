@@ -95,6 +95,7 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ focused }) => <TabIcon focused={focused} Icon={CircleUserRound} />,
+          popToTopOnPress: true,
         }}
       />
     </Tabs>

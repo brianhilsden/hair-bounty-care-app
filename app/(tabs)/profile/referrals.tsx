@@ -51,12 +51,16 @@ export default function ReferralsScreen() {
   const { data: statsData, isLoading } = useQuery({
     queryKey: ['referrals'],
     queryFn: referralsApi.getStats,
+    staleTime: 10 * 60 * 1000, // 10 min — referral stats change rarely
   });
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['referrals'] });
-    setRefreshing(false);
+    try {
+      await queryClient.refetchQueries({ queryKey: ['referrals'] });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const stats = statsData?.data;

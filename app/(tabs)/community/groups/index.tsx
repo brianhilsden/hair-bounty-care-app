@@ -1,8 +1,8 @@
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Image } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Image, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { communityApi, CommunityGroup } from '../../../../lib/api/community';
 import { Avatar } from '../../../../components/ui/Avatar';
 import { Skeleton } from '../../../../components/ui/Skeleton';
@@ -81,10 +81,18 @@ export default function GroupsScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { data: groupsData, isLoading } = useQuery({
     queryKey: ['community', 'groups'],
     queryFn: communityApi.getGroups,
+    staleTime: 5 * 60 * 1000,
   });
 
   const joinMutation = useMutation({
@@ -95,11 +103,21 @@ export default function GroupsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['community', 'groups'] });
-    setRefreshing(false);
+    try {
+      await queryClient.refetchQueries({ queryKey: ['community', 'groups'] });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  const groups = groupsData?.data ?? [];
+  const allGroups = groupsData?.data ?? [];
+  const groups = debouncedSearch.trim()
+    ? allGroups.filter(g =>
+        g.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        g.category.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        g.description.toLowerCase().includes(debouncedSearch.toLowerCase())
+      )
+    : allGroups;
 
   return (
     <SafeAreaView className="flex-1 bg-hair-bg">
@@ -122,7 +140,24 @@ export default function GroupsScreen() {
           </View>
         </View>
 
-        <View className="px-6 mt-6">
+        {/* Search */}
+        <View className="mx-6 mt-4 mb-2 flex-row items-center bg-hair-bg-dark rounded-2xl px-4 py-3 border border-hair-gold/20">
+          <Text className="text-white/40 mr-2">🔍</Text>
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search groups..."
+            placeholderTextColor="#7a6a5a"
+            className="flex-1 text-white text-sm"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Text className="text-white/40 text-base">✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View className="px-6 mt-4">
           {isLoading ? (
             <View className="gap-4">
               {[...Array(4)].map((_, i) => (
@@ -138,9 +173,9 @@ export default function GroupsScreen() {
             </View>
           ) : groups.length === 0 ? (
             <EmptyState
-              emoji="🌿"
-              title="No groups yet"
-              description="Hair groups are being set up. Check back soon!"
+              emoji={debouncedSearch ? "🔍" : "🌿"}
+              title={debouncedSearch ? `No results for "${debouncedSearch}"` : "No groups yet"}
+              description={debouncedSearch ? "Try different keywords" : "Hair groups are being set up. Check back soon!"}
             />
           ) : (
             groups.map(group => (

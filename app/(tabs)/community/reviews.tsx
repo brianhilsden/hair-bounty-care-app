@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
-  Alert,
   RefreshControl,
   ActivityIndicator,
 } from "react-native";
@@ -14,6 +13,7 @@ import { useRouter } from "expo-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAuthStore } from "../../../store/authStore";
+import { useToast } from "../../../components/ui/Toast";
 import { reviewsApi, Review } from "../../../lib/api/reviews";
 import { Avatar } from "../../../components/ui/Avatar";
 import { EmptyState } from "../../../components/shared/EmptyState";
@@ -96,6 +96,7 @@ export default function ReviewsScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+  const { show: showToast } = useToast();
   const [filter, setFilter] = useState<FilterType>("all");
   const [showModal, setShowModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -107,6 +108,7 @@ export default function ReviewsScreen() {
         targetType: filter === "all" ? undefined : filter,
         limit: 50,
       }),
+    staleTime: 5 * 60 * 1000,
   });
 
   const createMutation = useMutation({
@@ -114,15 +116,18 @@ export default function ReviewsScreen() {
     onSuccess: () => {
       setShowModal(false);
       queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      showToast("Review posted! ⭐", "success");
     },
-    onError: () =>
-      Alert.alert("Error", "Failed to post review. Please try again."),
+    onError: () => showToast("Failed to post review. Please try again.", "error"),
   });
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ["reviews"] });
-    setRefreshing(false);
+    try {
+      await queryClient.refetchQueries({ queryKey: ["reviews"] });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const reviews = data?.data ?? [];

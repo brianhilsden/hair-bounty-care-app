@@ -1,7 +1,8 @@
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useAuthStore } from '../../../store/authStore';
 import { gamificationApi } from '../../../lib/api/gamification';
 import { StreakCounter } from '../../../components/home/StreakCounter';
@@ -12,10 +13,28 @@ import { reviewsApi } from '../../../lib/api/reviews';
 export default function CommunityScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['rank', 'me', 'weekly'] }),
+        queryClient.refetchQueries({ queryKey: ['streak'] }),
+        queryClient.refetchQueries({ queryKey: ['badges', 'me'] }),
+        queryClient.refetchQueries({ queryKey: ['community', 'groups'] }),
+        queryClient.refetchQueries({ queryKey: ['reviews', 'all'] }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const { data: myRankData } = useQuery({
     queryKey: ['rank', 'me', 'weekly'],
     queryFn: () => gamificationApi.getUserRank('weekly'),
+    staleTime: 10 * 60 * 1000,
   });
 
   const { data: streakData } = useQuery({
@@ -50,6 +69,9 @@ export default function CommunityScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D2994A" />
+        }
       >
         {/* Header */}
         <View className="px-6 pt-6 pb-4">
@@ -148,8 +170,14 @@ export default function CommunityScreen() {
                   activeOpacity={0.85}
                 >
                   <View className="bg-hair-bg-dark rounded-2xl px-4 py-3.5 border border-hair-gold/10 flex-row items-center">
-                    <View className="w-10 h-10 rounded-full bg-hair-gold/20 items-center justify-center mr-3">
-                      <Text className="text-xl">🌿</Text>
+                    <View className="w-10 h-10 rounded-xl overflow-hidden mr-3">
+                      {group.coverUrl ? (
+                        <Image source={{ uri: group.coverUrl }} style={{ width: 40, height: 40 }} resizeMode="cover" />
+                      ) : (
+                        <View className="w-10 h-10 bg-hair-gold/20 items-center justify-center">
+                          <Text className="text-xl">🌿</Text>
+                        </View>
+                      )}
                     </View>
                     <View className="flex-1">
                       <Text className="text-white font-semibold text-sm" numberOfLines={1}>{group.name}</Text>

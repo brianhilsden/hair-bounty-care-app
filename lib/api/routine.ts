@@ -31,6 +31,11 @@ export interface TodayRoutine extends RoutineTemplate {
   completedAt?: string;
 }
 
+export interface UpcomingRoutine extends RoutineTemplate {
+  nextDate: string;
+  nextLabel: string;
+}
+
 export interface RoutineStats {
   today: number;
   thisWeek: number;
@@ -60,6 +65,11 @@ export const routineApi = {
 
   async logRoutine(templateId: string, notes?: string): Promise<ApiResponse<RoutineLog>> {
     const response = await api.post('/routines/log', { templateId, notes });
+    return response.data;
+  },
+
+  async undoRoutine(templateId: string): Promise<ApiResponse<{ undone: boolean }>> {
+    const response = await api.delete(`/routines/log/${templateId}/today`);
     return response.data;
   },
 
@@ -96,6 +106,11 @@ export const routineApi = {
 
   async removeRoutineTemplate(templateId: string): Promise<ApiResponse<void>> {
     const response = await api.delete(`/routines/my-routines/${templateId}`);
+    return response.data;
+  },
+
+  async getUpcomingRoutines(): Promise<ApiResponse<UpcomingRoutine[]>> {
+    const response = await api.get('/routines/upcoming');
     return response.data;
   },
 };

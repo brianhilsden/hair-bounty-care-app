@@ -10,7 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { salonsApi } from "../../../lib/api/salons";
+// import { salonsApi } from "../../../lib/api/salons"; // Salons hidden until data is available
 import { productsApi } from "../../../lib/api/products";
 import { blogApi } from "../../../lib/api/blog";
 import { recommendationsApi } from "../../../lib/api/recommendations";
@@ -44,24 +44,22 @@ export default function ExploreScreen() {
   const [email, setEmail] = useState("");
   const totalItems = useCartStore((s) => s.totalItems());
 
-  const { data: salonsData, isLoading: salonsLoading } = useQuery({
-    queryKey: ["salons", {}],
-    queryFn: () => salonsApi.getSalons({ limit: 3 }),
-  });
-
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ["products", {}],
     queryFn: () => productsApi.getProducts({ limit: 4 }),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: blogData, isLoading: blogLoading } = useQuery({
     queryKey: ["blog", {}],
     queryFn: () => blogApi.getPosts({ limit: 3 }),
+    staleTime: 15 * 60 * 1000,
   });
 
   const { data: recsData, isLoading: recsLoading } = useQuery({
     queryKey: ["recommendations", "products"],
     queryFn: () => recommendationsApi.getProducts(),
+    staleTime: 30 * 60 * 1000,
   });
 
   const subscribeMutation = useMutation({
@@ -75,8 +73,13 @@ export default function ExploreScreen() {
     },
   });
 
-  const salons = salonsData?.data ?? [];
+  // const { data: salonsData, isLoading: salonsLoading } = useQuery({
+  //   queryKey: ["salons", {}],
+  //   queryFn: () => salonsApi.getSalons({ limit: 3 }),
+  // });
+
   const products = productsData?.data ?? [];
+  // const salons = salonsData?.data ?? [];
   const posts = blogData?.data ?? [];
   const recommendedProducts = recsData?.data ?? [];
 
@@ -92,7 +95,7 @@ export default function ExploreScreen() {
           <View>
             <Text className="text-3xl font-bold text-white">Explore ✨</Text>
             <Text className="text-white/60 text-sm">
-              Salons, products & hair tips
+              Products & hair tips
             </Text>
           </View>
           <TouchableOpacity
@@ -121,7 +124,7 @@ export default function ExploreScreen() {
             onSubmitEditing={() => {
               if (search.trim()) router.push(`/explore/products`);
             }}
-            placeholder="Search salons, products..."
+            placeholder="Search products..."
             placeholderTextColor="#7a6a5a"
             className="flex-1 text-white text-sm"
             returnKeyType="search"
@@ -146,8 +149,7 @@ export default function ExploreScreen() {
               label: "DIY Oils",
               route: "/(tabs)/explore/products",
             },
-                        { emoji: "💈", label: "Salons", route: "/(tabs)/explore/salons" },
-
+            // { emoji: "💈", label: "Salons", route: "/(tabs)/explore/salons" }, // Hidden until salon data available
             { emoji: "📖", label: "Blog", route: "/(tabs)/explore/blog" },
           ].map((item) => (
             <TouchableOpacity
@@ -341,7 +343,7 @@ export default function ExploreScreen() {
           )}
         </View>
 
-              {/* Salons preview */}
+        {/* Salons preview — hidden until salon data is available
         <View className="px-6 mb-6">
           <SectionHeader
             title="💈 Nearby Salons"
@@ -359,9 +361,7 @@ export default function ExploreScreen() {
               className="bg-hair-bg-dark rounded-2xl p-5 items-center border border-hair-gold/10"
             >
               <Text className="text-4xl mb-2">💈</Text>
-              <Text className="text-white font-semibold mb-1">
-                Find Salons Near You
-              </Text>
+              <Text className="text-white font-semibold mb-1">Find Salons Near You</Text>
               <Text className="text-hair-gold text-sm">Browse salons →</Text>
             </TouchableOpacity>
           ) : (
@@ -369,9 +369,7 @@ export default function ExploreScreen() {
               {salons.map((salon) => (
                 <TouchableOpacity
                   key={salon.id}
-                  onPress={() =>
-                    router.push(`/explore/salons/${salon.id}` as any)
-                  }
+                  onPress={() => router.push(`/explore/salons/${salon.id}` as any)}
                   activeOpacity={0.85}
                 >
                   <View className="flex-row items-center bg-hair-bg-dark rounded-2xl px-4 py-3 border border-hair-gold/10">
@@ -379,15 +377,8 @@ export default function ExploreScreen() {
                       <Text className="text-2xl">💈</Text>
                     </View>
                     <View className="flex-1">
-                      <Text
-                        className="text-white font-semibold text-sm"
-                        numberOfLines={1}
-                      >
-                        {salon.name}
-                      </Text>
-                      <Text className="text-white/40 text-xs">
-                        {salon.city} · ⭐ {salon.rating.toFixed(1)}
-                      </Text>
+                      <Text className="text-white font-semibold text-sm" numberOfLines={1}>{salon.name}</Text>
+                      <Text className="text-white/40 text-xs">{salon.city} · ⭐ {salon.rating.toFixed(1)}</Text>
                     </View>
                     <Text className="text-hair-gold text-base">→</Text>
                   </View>
@@ -396,6 +387,7 @@ export default function ExploreScreen() {
             </View>
           )}
         </View>
+        */}
 
         {/* Newsletter Subscription */}
         <View className="px-6 mb-6">

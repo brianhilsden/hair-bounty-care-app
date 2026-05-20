@@ -1,18 +1,27 @@
-import { View, Text, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, TouchableOpacity, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../../store/authStore';
+import { useRef, useEffect, useState } from 'react';
 import { Card, CardContent } from '../../../components/ui/Card';
 import { Skeleton, SkeletonCard } from '../../../components/ui/Skeleton';
 import { StreakCounter } from '../../../components/home/StreakCounter';
 import { DailyRoutineCard } from '../../../components/home/DailyRoutineCard';
 import { EmptyState } from '../../../components/shared/EmptyState';
 import { GoalProgressRing } from '../../../components/shared/GoalProgressRing';
-import { routineApi, TodayRoutine } from '../../../lib/api/routine';
+import { routineApi, TodayRoutine, UpcomingRoutine } from '../../../lib/api/routine';
 import { gamificationApi } from '../../../lib/api/gamification';
 import type { ApiResponse } from '../../../lib/api';
 import { useToast } from '../../../components/ui/Toast';
-import { useState } from 'react';
+
+// Sort incomplete first, completed last — preserves stable order within each group
+function sortRoutines(routines: TodayRoutine[]): TodayRoutine[] {
+  return [...routines].sort((a, b) => {
+    if (a.completed === b.completed) return 0;
+    return a.completed ? 1 : -1;
+  });
+}
 
 // Group routines by category
 function groupByCategory(routines: TodayRoutine[]): Record<string, TodayRoutine[]> {
@@ -37,12 +46,13 @@ function getMotivationalMessage(completed: number, total: number, streak: number
 }
 
 export default function RoutinesScreen() {
+  const router = useRouter();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
   const { data: todayData, isLoading: routinesLoading } = useQuery({
-    queryKey: ['routines', 'today'],
+    queryKey: ['routine', 'today'],
     queryFn: routineApi.getTodayRoutines,
   });
 
@@ -61,17 +71,23 @@ export default function RoutinesScreen() {
     queryFn: gamificationApi.getUserBadges,
   });
 
-  const { showToast } = useToast();
+  const { data: upcomingData } = useQuery({
+    queryKey: ['routine', 'upcoming'],
+    queryFn: routineApi.getUpcomingRoutines,
+    staleTime: 60 * 60 * 1000, // 1 hour — next occurrence only changes daily
+  });
+
+  const { show: showToast } = useToast();
 
   const logMutation = useMutation({
-    mutationFn: (templateId: string) => routineApi.logRoutine(templateId),
+    mutationFn: ({ templateId, notes }: { templateId: string; notes?: string }) =>
+      routineApi.logRoutine(templateId, notes),
 
-    // 1. Snapshot current list and flip the checkbox instantly
-    onMutate: async (templateId: string) => {
-      await queryClient.cancelQueries({ queryKey: ['routines', 'today'] });
-      const previous = queryClient.getQueryData<ApiResponse<TodayRoutine[]>>(['routines', 'today']);
-      queryClient.setQueryData<ApiResponse<TodayRoutine[]>>(['routines', 'today'], (old) => {
-        if (!old) return old;
+    onMutate: async ({ templateId }) => {
+      await queryClient.cancelQueries({ queryKey: ['routine', 'today'] });
+      const previous = queryClient.getQueryData<ApiResponse<TodayRoutine[]>>(['routine', 'today']);
+      queryClient.setQueryData<ApiResponse<TodayRoutine[]>>(['routine', 'today'], (old) => {
+        if (!old?.data) return old;
         return {
           ...old,
           data: old.data.map((r) =>
@@ -82,38 +98,71 @@ export default function RoutinesScreen() {
       return { previous };
     },
 
-    // 2. On success: sync streak (cheap) + invalidate badges lazily
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['streak'] });
       queryClient.invalidateQueries({ queryKey: ['badges', 'me'] });
+      queryClient.invalidateQueries({ queryKey: ['routine', 'stats'] });
     },
 
-    // 3. On error: roll back the optimistic tick and show a toast
-    onError: (_err, _templateId, context) => {
+    onError: (_err, _vars, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(['routines', 'today'], context.previous);
+        queryClient.setQueryData(['routine', 'today'], context.previous);
       }
       showToast('Could not log routine. Please try again.', 'error');
     },
 
-    // 4. Always re-sync the server state once settled
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['routines', 'today'] });
+      queryClient.invalidateQueries({ queryKey: ['routine', 'today'] });
+    },
+  });
+
+  const undoMutation = useMutation({
+    mutationFn: (templateId: string) => routineApi.undoRoutine(templateId),
+
+    onMutate: async (templateId) => {
+      await queryClient.cancelQueries({ queryKey: ['routine', 'today'] });
+      const previous = queryClient.getQueryData<ApiResponse<TodayRoutine[]>>(['routine', 'today']);
+      queryClient.setQueryData<ApiResponse<TodayRoutine[]>>(['routine', 'today'], (old) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((r) =>
+            r.id === templateId ? { ...r, completed: false, completedAt: undefined } : r
+          ),
+        };
+      });
+      return { previous };
+    },
+
+    onError: (_err, _templateId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['routine', 'today'], context.previous);
+      }
+      showToast('Could not undo routine. Please try again.', 'error');
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['routine', 'today'] });
+      queryClient.invalidateQueries({ queryKey: ['streak'] });
+      queryClient.invalidateQueries({ queryKey: ['routine', 'stats'] });
     },
   });
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['routines', 'today'] }),
-      queryClient.invalidateQueries({ queryKey: ['streak'] }),
-      queryClient.invalidateQueries({ queryKey: ['routine', 'stats'] }),
-      queryClient.invalidateQueries({ queryKey: ['badges', 'me'] }),
-    ]);
-    setRefreshing(false);
+    try {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['routine', 'today'] }),
+        queryClient.refetchQueries({ queryKey: ['streak'] }),
+        queryClient.refetchQueries({ queryKey: ['routine', 'stats'] }),
+        queryClient.refetchQueries({ queryKey: ['badges', 'me'] }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  const routines = todayData?.data ?? [];
+  const routines = sortRoutines(todayData?.data ?? []);
   const streak = streakData?.data;
   const stats = statsData?.data;
   const badges = badgesData?.data ?? [];
@@ -123,6 +172,35 @@ export default function RoutinesScreen() {
   const progressPercent = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
   const grouped = groupByCategory(routines);
   const allDone = totalCount > 0 && completedCount === totalCount;
+
+  // All-done celebration animation
+  const celebrationScale = useRef(new Animated.Value(0.85)).current;
+  const celebrationOpacity = useRef(new Animated.Value(0)).current;
+  const celebrationEmoji1Y = useRef(new Animated.Value(0)).current;
+  const celebrationEmoji2Y = useRef(new Animated.Value(0)).current;
+  const celebrationEmoji3Y = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!allDone) return;
+    // Banner pops in
+    Animated.parallel([
+      Animated.spring(celebrationScale, { toValue: 1, useNativeDriver: true, tension: 60, friction: 6 }),
+      Animated.timing(celebrationOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
+    // Emojis float up and fade
+    const floatEmoji = (anim: Animated.Value, delay: number) =>
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.parallel([
+          Animated.timing(anim, { toValue: -40, duration: 800, useNativeDriver: true }),
+        ]),
+      ]);
+    Animated.parallel([
+      floatEmoji(celebrationEmoji1Y, 100),
+      floatEmoji(celebrationEmoji2Y, 250),
+      floatEmoji(celebrationEmoji3Y, 400),
+    ]).start();
+  }, [allDone]);
 
   const journeyDays = user?.createdAt
     ? Math.floor((Date.now() - new Date(user.createdAt).getTime()) / 86400000) + 1
@@ -146,6 +224,15 @@ export default function RoutinesScreen() {
             <Text className="text-white/60 text-sm mt-1">
               {getMotivationalMessage(completedCount, totalCount, streak?.currentStreak ?? 0)}
             </Text>
+            <TouchableOpacity
+              onPress={() => router.push('/profile/my-routines' as any)}
+              className="flex-row items-center mt-2 self-start"
+              activeOpacity={0.7}
+            >
+              <Text className="text-hair-gold text-xs font-semibold">
+                {allDone ? '✏️ Add more routines' : '✏️ Edit routines'}
+              </Text>
+            </TouchableOpacity>
           </View>
           {/* Progress ring */}
           <GoalProgressRing
@@ -159,12 +246,24 @@ export default function RoutinesScreen() {
 
         {/* All done banner */}
         {allDone && (
-          <View className="mx-6 mt-4 bg-hair-gold/10 border border-hair-gold/40 rounded-2xl p-4 items-center">
-            <Text className="text-3xl mb-1">🎉</Text>
-            <Text className="text-hair-gold font-bold text-base text-center">
-              All routines complete for today!
+          <Animated.View
+            style={{ transform: [{ scale: celebrationScale }], opacity: celebrationOpacity }}
+            className="mx-6 mt-4 bg-hair-gold/10 border border-hair-gold/40 rounded-2xl p-5 items-center overflow-hidden"
+          >
+            {/* Floating emoji particles */}
+            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="none">
+              <Animated.Text style={{ position: 'absolute', left: '20%', top: 20, fontSize: 18, transform: [{ translateY: celebrationEmoji1Y }], opacity: celebrationEmoji1Y.interpolate({ inputRange: [-40, 0], outputRange: [0, 1] }) }}>✨</Animated.Text>
+              <Animated.Text style={{ position: 'absolute', left: '50%', top: 10, fontSize: 18, transform: [{ translateY: celebrationEmoji2Y }], opacity: celebrationEmoji2Y.interpolate({ inputRange: [-40, 0], outputRange: [0, 1] }) }}>🌟</Animated.Text>
+              <Animated.Text style={{ position: 'absolute', left: '75%', top: 20, fontSize: 18, transform: [{ translateY: celebrationEmoji3Y }], opacity: celebrationEmoji3Y.interpolate({ inputRange: [-40, 0], outputRange: [0, 1] }) }}>💛</Animated.Text>
+            </View>
+            <Text className="text-4xl mb-2">👑</Text>
+            <Text className="text-hair-gold font-bold text-lg text-center mb-1">
+              Crown complete!
             </Text>
-          </View>
+            <Text className="text-white/60 text-sm text-center">
+              All routines done for today. Your hair thanks you 💕
+            </Text>
+          </Animated.View>
         )}
 
         {/* Streak */}
@@ -205,7 +304,7 @@ export default function RoutinesScreen() {
                 <View key={category}>
                   {/* Category header */}
                   <View className="flex-row items-center mb-3">
-                    <Text className="text-white/50 text-xs uppercase tracking-widest font-semibold capitalize">
+                    <Text className="text-white/50 text-xs uppercase tracking-widest font-semibold">
                       {category}
                     </Text>
                     <View className="flex-1 h-px bg-hair-gold/10 ml-3" />
@@ -219,8 +318,10 @@ export default function RoutinesScreen() {
                       <DailyRoutineCard
                         key={routine.id}
                         routine={routine}
-                        onComplete={() => logMutation.mutate(routine.id)}
+                        onComplete={(notes) => logMutation.mutate({ templateId: routine.id, notes })}
+                        onUndo={() => undoMutation.mutate(routine.id)}
                         isLoading={logMutation.isPending}
+                        isUndoLoading={undoMutation.isPending}
                       />
                     ))}
                   </View>
@@ -274,6 +375,48 @@ export default function RoutinesScreen() {
                 ))}
               </View>
             </ScrollView>
+          </View>
+        )}
+
+        {/* Upcoming routines */}
+        {(upcomingData?.data ?? []).length > 0 && (
+          <View className="px-6 mt-6 mb-2">
+            <View className="flex-row items-center mb-3">
+              <Text className="text-white text-xl font-bold">Coming Up 📅</Text>
+            </View>
+            <View className="gap-3">
+              {(upcomingData?.data ?? []).map((routine: UpcomingRoutine) => (
+                <View
+                  key={routine.id}
+                  className="flex-row items-center bg-hair-bg-dark rounded-2xl px-4 py-4 border border-white/8"
+                >
+                  {/* Icon */}
+                  <View className="w-12 h-12 rounded-xl bg-white/5 items-center justify-center mr-4">
+                    <Text className="text-2xl">{routine.icon}</Text>
+                  </View>
+
+                  {/* Info */}
+                  <View className="flex-1">
+                    <Text className="text-white font-semibold text-sm mb-0.5">
+                      {routine.name}
+                    </Text>
+                    <Text className="text-white/50 text-xs" numberOfLines={1}>
+                      {routine.description}
+                    </Text>
+                  </View>
+
+                  {/* Next label */}
+                  <View className="items-end ml-3">
+                    <View className={`rounded-full px-2.5 py-1 ${routine.frequency === 'weekly' ? 'bg-blue-500/15 border border-blue-500/25' : 'bg-purple-500/15 border border-purple-500/25'}`}>
+                      <Text className={`text-[10px] font-bold uppercase tracking-wide ${routine.frequency === 'weekly' ? 'text-blue-400' : 'text-purple-400'}`}>
+                        {routine.frequency}
+                      </Text>
+                    </View>
+                    <Text className="text-white/40 text-xs mt-1">{routine.nextLabel}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
           </View>
         )}
       </ScrollView>

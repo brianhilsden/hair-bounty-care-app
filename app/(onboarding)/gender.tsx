@@ -86,6 +86,13 @@ export default function GenderScreen() {
           <Button
             variant="ghost"
             size="md"
+            onPress={() => router.push('/(onboarding)/hair-photo')}
+          >
+            Skip
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
             onPress={() => router.back()}
           >
             Back

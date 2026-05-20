@@ -6,14 +6,18 @@ import {
   TouchableOpacity,
   Alert,
   Platform,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { progressApi } from "../../../lib/api/progress";
+import { useState } from "react";
 import { profileApi, HairProfile } from "../../../lib/api/profile";
 import { Button } from "../../../components/ui/Button";
 import { Card, CardContent } from "../../../components/ui/Card";
 import { Badge } from "../../../components/ui/Badge";
+import { Skeleton } from "../../../components/ui/Skeleton";
 import { useAuthStore } from "../../../store/authStore";
 import { useOnboardingStore } from "../../../store/onboardingStore";
 import {
@@ -53,6 +57,8 @@ const ProfileAttributeRow = ({
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout } = useAuthStore();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
 
   const {
     data: apiResponse,
@@ -62,8 +68,8 @@ export default function ProfileScreen() {
   } = useQuery({
     queryKey: ["profile"],
     queryFn: profileApi.getProfile,
+    staleTime: 10 * 60 * 1000, // 10 min — profile changes infrequently
     retry: (failureCount, error: any) => {
-      // Don't retry if profile not found (404)
       if (
         error?.response?.status === 404 ||
         error?.message === "Hair profile not found"
@@ -74,7 +80,22 @@ export default function ProfileScreen() {
     },
   });
 
-  const queryClient = useQueryClient();
+  const { data: progressData } = useQuery({
+    queryKey: ["progress", "photos"],
+    queryFn: () => progressApi.getProgressPhotos({ limit: 1 }),
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const latestProgressPhoto = progressData?.data?.[0]?.photoUrl ?? null;
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleLogout = () => {
     const doLogout = async () => {
@@ -106,9 +127,42 @@ export default function ProfileScreen() {
   if (isLoading) {
     return (
       <SafeAreaView className="flex-1 bg-hair-bg">
-        <View className="flex-1 items-center justify-center">
-          <Text className="text-white text-lg">Loading profile...</Text>
-        </View>
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+          {/* Header skeleton */}
+          <View className="px-6 pt-6 pb-4 border-b border-hair-gold/20">
+            <Skeleton height={32} width="50%" rounded="md" />
+            <View className="mt-2">
+              <Skeleton height={14} width="60%" rounded="sm" />
+            </View>
+          </View>
+          {/* Photo skeleton */}
+          <View className="px-6 pt-6">
+            <Skeleton height={16} width="40%" rounded="sm" className="mb-3" />
+            <Skeleton height={320} rounded="lg" />
+          </View>
+          {/* Hair profile skeleton */}
+          <View className="px-6 pt-6">
+            <Skeleton height={16} width="40%" rounded="sm" className="mb-3" />
+            <View className="bg-hair-bg-dark rounded-2xl p-4 gap-4 border border-hair-gold/10">
+              {[0, 1, 2, 3, 4].map(i => (
+                <View key={i} className="flex-row items-center gap-3">
+                  <Skeleton height={48} width={48} rounded="full" />
+                  <View className="flex-1 gap-2">
+                    <Skeleton height={12} width="30%" rounded="sm" />
+                    <Skeleton height={14} width="60%" rounded="sm" />
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+          {/* Actions skeleton */}
+          <View className="px-6 pt-8 gap-3">
+            <Skeleton height={52} rounded="lg" />
+            <Skeleton height={64} rounded="lg" />
+            <Skeleton height={64} rounded="lg" />
+            <Skeleton height={64} rounded="lg" />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -120,7 +174,6 @@ export default function ProfileScreen() {
     (error as any)?.message === "Hair profile not found";
 
   if (error && !isProfileNotFound) {
-    console.log("Profile Load Error:", error);
     return (
       <SafeAreaView className="flex-1 bg-hair-bg">
         <View className="flex-1 items-center justify-center px-6">
@@ -139,8 +192,6 @@ export default function ProfileScreen() {
   }
 
   const profile: Partial<HairProfile> = apiResponse?.data || {};
-
-  console.log("Profile Data Loaded:", JSON.stringify(profile, null, 2));
 
   // Find display labels for profile data
   const curlPatternData = CURL_PATTERNS.find(
@@ -166,6 +217,9 @@ export default function ProfileScreen() {
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D2994A" />
+        }
       >
         {/* Header */}
         <View className="px-6 pt-6 pb-4 border-b border-hair-gold/20">
@@ -178,18 +232,25 @@ export default function ProfileScreen() {
           <Text className="text-white text-lg font-semibold mb-3">
             Your Hair Journey
           </Text>
-          {profile.hairPhotoUrl ? (
+          {(profile.hairPhotoUrl || latestProgressPhoto) ? (
             <View className="rounded-2xl overflow-hidden border-2 border-hair-gold">
               <Image
-                source={{ uri: profile.hairPhotoUrl }}
+                source={{ uri: (profile.hairPhotoUrl || latestProgressPhoto)! }}
                 className="w-full h-80"
                 resizeMode="cover"
               />
             </View>
           ) : (
-            <View className="rounded-2xl overflow-hidden border-2 border-white/10 bg-white/5 h-40 items-center justify-center">
-              <Text className="text-white/40">No photo uploaded</Text>
-            </View>
+            <TouchableOpacity
+              onPress={() => router.push('/home/progress')}
+              activeOpacity={0.8}
+              className="rounded-2xl border-2 border-white/10 bg-white/5 h-40 items-center justify-center gap-2"
+              style={{ borderStyle: 'dashed' }}
+            >
+              <Text className="text-3xl">📸</Text>
+              <Text className="text-white/60 text-sm font-semibold">No hair photo yet</Text>
+              <Text className="text-hair-gold text-xs">Go to Progress Tracker →</Text>
+            </TouchableOpacity>
           )}
         </View>
 

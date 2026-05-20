@@ -4,7 +4,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -32,7 +31,7 @@ export default function CartScreen() {
     clear,
   } = useCartStore();
 
-  const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "card">("mpesa");
+  const paymentMethod = "cash_on_delivery";
 
   // Promo code state
   const [promoInput, setPromoInput] = useState("");
@@ -51,14 +50,8 @@ export default function CartScreen() {
       }),
     onSuccess: () => {
       clear();
-      Alert.alert(
-        "🎉 Order Placed!",
-        `Order confirmed!\nYou'll receive updates on your delivery.`,
-        [
-          { text: "View Orders", onPress: () => router.replace('/explore/orders') },
-          { text: "OK", onPress: () => router.back() },
-        ],
-      );
+      showToast("🎉 Order placed! You'll receive updates on your delivery.", "success");
+      router.replace('/explore/orders');
     },
     onError: () => showToast("Failed to place order. Try again.", "error"),
   });
@@ -230,45 +223,35 @@ export default function CartScreen() {
           </View>
         </View>
 
-        {/* Payment method */}
+        {/* Payment */}
         <View className="px-4 mt-5">
-          <Text className="text-white font-semibold mb-3">
-            💳 Payment Method
-          </Text>
-          <View className="flex-row gap-3">
-            {[
-              {
-                key: "mpesa",
-                label: "M-Pesa",
-                emoji: "📱",
-                desc: "Pay via Safaricom",
-              },
-              {
-                key: "card",
-                label: "Card",
-                emoji: "💳",
-                desc: "Debit / Credit",
-              },
-            ].map((opt) => (
-              <TouchableOpacity
-                key={opt.key}
-                onPress={() => setPaymentMethod(opt.key as "mpesa" | "card")}
-                className={`flex-1 rounded-2xl p-4 border items-center ${paymentMethod === opt.key ? "bg-hair-gold border-hair-gold" : "bg-hair-bg-dark border-hair-gold/20"}`}
-              >
-                <Text className="text-2xl mb-1">{opt.emoji}</Text>
-                <Text
-                  className={`font-bold text-sm ${paymentMethod === opt.key ? "text-white" : "text-white/70"}`}
-                >
-                  {opt.label}
-                </Text>
-                <Text
-                  className={`text-xs mt-0.5 ${paymentMethod === opt.key ? "text-white/80" : "text-white/40"}`}
-                >
-                  {opt.desc}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <Text className="text-white font-semibold mb-3">💳 Payment</Text>
+          <View className="bg-hair-bg-dark rounded-2xl p-4 border border-hair-gold/20 flex-row items-center">
+            <View className="w-12 h-12 rounded-xl bg-hair-gold/20 items-center justify-center mr-4">
+              <Text className="text-2xl">🚚</Text>
+            </View>
+            <View className="flex-1">
+              <Text className="text-white font-bold text-sm">Cash on Delivery</Text>
+              <Text className="text-white/50 text-xs mt-0.5">Pay when your order arrives</Text>
+            </View>
+            <View className="w-6 h-6 rounded-full bg-hair-gold items-center justify-center">
+              <Text className="text-white text-xs font-bold">✓</Text>
+            </View>
           </View>
+          {/* M-Pesa & Card coming soon — hidden until payment integration is complete
+          <View className="flex-row gap-3 mt-3 opacity-40">
+            <View className="flex-1 rounded-2xl p-4 border border-hair-gold/20 bg-hair-bg-dark items-center">
+              <Text className="text-2xl mb-1">📱</Text>
+              <Text className="text-white/70 font-bold text-sm">M-Pesa</Text>
+              <Text className="text-white/30 text-xs mt-0.5">Coming soon</Text>
+            </View>
+            <View className="flex-1 rounded-2xl p-4 border border-hair-gold/20 bg-hair-bg-dark items-center">
+              <Text className="text-2xl mb-1">💳</Text>
+              <Text className="text-white/70 font-bold text-sm">Card</Text>
+              <Text className="text-white/30 text-xs mt-0.5">Coming soon</Text>
+            </View>
+          </View>
+          */}
         </View>
 
         {/* Promo Code input */}

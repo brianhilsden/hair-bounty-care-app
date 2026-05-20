@@ -8,6 +8,8 @@ export interface CommunityGroup {
   category: string;
   memberCount: number;
   isJoined?: boolean;
+  postCount: number;
+  lastPostAt: string | null;
   createdAt: string;
 }
 

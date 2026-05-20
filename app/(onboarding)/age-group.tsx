@@ -1,14 +1,16 @@
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Button } from '../../components/ui/Button';
 import { AGE_GROUPS } from '../../constants/hairTypes';
 import { useOnboardingStore } from '../../store/onboardingStore';
+import { useAuthStore } from '../../store/authStore';
 import { useState } from 'react';
 
 export default function AgeGroupScreen() {
   const router = useRouter();
-  const { ageGroup, setAgeGroup, isEditMode } = useOnboardingStore();
+  const { ageGroup, setAgeGroup, isEditMode, reset } = useOnboardingStore();
+  const { logout } = useAuthStore();
   const [selected, setSelected] = useState(ageGroup);
 
   const handleContinue = () => {
@@ -18,6 +20,24 @@ export default function AgeGroupScreen() {
     }
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Leave Setup',
+      'Are you sure you want to exit? You can complete your profile later.',
+      [
+        { text: 'Stay', style: 'cancel' },
+        {
+          text: 'Exit & Logout',
+          style: 'destructive',
+          onPress: async () => {
+            reset();
+            await logout();
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-hair-bg">
       <ScrollView
@@ -25,15 +45,21 @@ export default function AgeGroupScreen() {
         contentContainerStyle={{ paddingTop: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Cancel button in edit mode */}
-        {isEditMode && (
-          <TouchableOpacity
-            onPress={() => router.replace('/(tabs)/profile')}
-            className="self-start mb-4 flex-row items-center"
-          >
-            <Text className="text-hair-gold text-base font-semibold">← Cancel</Text>
-          </TouchableOpacity>
-        )}
+        {/* Top bar */}
+        <View className="flex-row items-center justify-between mb-4">
+          {isEditMode ? (
+            <TouchableOpacity onPress={() => router.replace('/(tabs)/profile')}>
+              <Text className="text-hair-gold text-base font-semibold">← Cancel</Text>
+            </TouchableOpacity>
+          ) : (
+            <View />
+          )}
+          {!isEditMode && (
+            <TouchableOpacity onPress={handleLogout} className="self-end">
+              <Text className="text-white/40 text-sm">Exit setup</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Progress */}
         <View className="mb-8">

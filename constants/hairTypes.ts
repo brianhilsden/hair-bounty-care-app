@@ -1,6 +1,6 @@
 // Age Groups
 export const AGE_GROUPS = [
-  { value: 'KIDS', label: 'Parent / Guardian', subtitle: 'Supervising under 12', emoji: '👩‍👧' },
+  { value: 'KIDS', label: 'Parent / Guardian', subtitle: 'Managing my child\'s hair care', emoji: '👩‍👧' },
   { value: 'TEENS', label: 'Teens', subtitle: '13-17 years', emoji: '👧' },
   { value: 'YOUNG_ADULT', label: 'Young Adults', subtitle: '18-30 years', emoji: '👩' },
   { value: 'ADULT', label: 'Adults', subtitle: '31+ years', emoji: '👩‍🦱' },

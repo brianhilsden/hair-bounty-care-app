@@ -85,7 +85,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user: response.data, isAuthenticated: true, isLoading: false });
       return true;
     } catch (error) {
-      console.error('[AuthStore] Failed to authenticate user:', error);
       await tokenManager.clearTokens();
       set({ isAuthenticated: false, isLoading: false, user: null });
       return false;

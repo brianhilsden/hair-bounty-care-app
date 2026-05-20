@@ -1,17 +1,3 @@
-/**
- * HOME DASHBOARD - Phase 3 (Minimal)
- *
- * TODO: Complete in later phases with full dashboard structure:
- *
- * 1. ✅ Header Section (personalized greeting, journey day, streak indicator)
- * 2. ✅ Quick Stats Card (streak, routines today, recent badge, rank)
- * 3. ✅ Today's Routine Section (compact view with "View All" button)
- * 4. 🔲 Progress Snapshot (Phase 4 - before/after photos, growth metrics)
- * 5. ✅ Personalized Recommendations (horizontal scroll - hairstyles, products, DIY recipes)
- * 6. ✅ Community Highlights (Phase 5 - recent posts, trending transformations)
- * 7. ✅ Explore section (Dynamic banner)
- * 8. 🔲 Ads Banner (non-intrusive sponsored content)
- */
 
 import {
   View,
@@ -42,76 +28,81 @@ export default function HomeScreen() {
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch streak
-  const { data: streakData } = useQuery({
+  // Realtime: refetch every tab focus — streak and today's routines change as user acts
+  const { data: streakData, isError: streakError } = useQuery({
     queryKey: ["streak"],
     queryFn: routineApi.getStreak,
+    staleTime: 60 * 1000,
   });
 
-  // Fetch routine stats
-  const { data: statsData } = useQuery({
+  const { data: statsData, isError: statsError } = useQuery({
     queryKey: ["routine", "stats"],
     queryFn: routineApi.getRoutineStats,
+    staleTime: 60 * 1000,
   });
 
-  // Fetch today's routines
-  const { data: todayRoutinesData } = useQuery({
+  const { data: todayRoutinesData, isError: routinesError } = useQuery({
     queryKey: ["routine", "today"],
     queryFn: routineApi.getTodayRoutines,
+    staleTime: 30 * 1000,
   });
 
-  // Fetch user badges
+  // Semi-realtime: changes happen but not every minute
   const { data: badgesData } = useQuery({
     queryKey: ["badges", "me"],
     queryFn: gamificationApi.getUserBadges,
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch user rank
   const { data: rankData } = useQuery({
     queryKey: ["rank", "me"],
     queryFn: () => gamificationApi.getUserRank("all-time"),
+    staleTime: 10 * 60 * 1000,
   });
 
-  // Fetch progress comparison
   const { data: progressComparisonData } = useQuery({
     queryKey: ["progress", "comparison"],
     queryFn: progressApi.getBeforeAfterComparison,
+    staleTime: 10 * 60 * 1000,
   });
 
-  // Fetch growth stats
   const { data: growthStatsData } = useQuery({
     queryKey: ["progress", "stats"],
     queryFn: progressApi.getGrowthStats,
+    staleTime: 10 * 60 * 1000,
   });
 
-  // Fetch recommendations
-  const { data: recsData, isLoading: recsLoading } = useQuery({
+  // Slow: content changes rarely, no need to refetch on every tab visit
+  const { data: recsData, isLoading: recsLoading, isError: recsError } = useQuery({
     queryKey: ["recommendations", "products", "home"],
     queryFn: () => recommendationsApi.getProducts(),
+    staleTime: 30 * 60 * 1000,
   });
 
-  // Fetch community
-  const { data: communityData, isLoading: communityLoading } = useQuery({
+  const { data: communityData, isLoading: communityLoading, isError: communityError } = useQuery({
     queryKey: ["community", "groups", "home"],
     queryFn: () => communityApi.getGroups(),
+    staleTime: 15 * 60 * 1000,
   });
+
+  const hasCriticalError = streakError || statsError || routinesError;
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["streak"] }),
-      queryClient.invalidateQueries({ queryKey: ["routine", "stats"] }),
-      queryClient.invalidateQueries({ queryKey: ["badges", "me"] }),
-      queryClient.invalidateQueries({ queryKey: ["rank", "me"] }),
-      queryClient.invalidateQueries({ queryKey: ["progress"] }),
-      queryClient.invalidateQueries({
-        queryKey: ["recommendations", "products", "home"],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ["community", "groups", "home"],
-      }),
-    ]);
-    setRefreshing(false);
+    try {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ["streak"] }),
+        queryClient.refetchQueries({ queryKey: ["routine", "stats"] }),
+        queryClient.refetchQueries({ queryKey: ["routine", "today"] }),
+        queryClient.refetchQueries({ queryKey: ["badges", "me"] }),
+        queryClient.refetchQueries({ queryKey: ["rank", "me"] }),
+        queryClient.refetchQueries({ queryKey: ["progress"] }),
+        queryClient.refetchQueries({ queryKey: ["recommendations", "products", "home"] }),
+        queryClient.refetchQueries({ queryKey: ["community", "groups", "home"] }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const streak = streakData?.data;
@@ -129,6 +120,14 @@ export default function HomeScreen() {
     : 1;
 
   const recentBadge = badges.length > 0 ? badges[0] : null;
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Good morning";
+    if (hour >= 12 && hour < 17) return "Good afternoon";
+    if (hour >= 17 && hour < 21) return "Good evening";
+    return "Good night";
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-hair-bg">
@@ -164,7 +163,7 @@ export default function HomeScreen() {
                 )}
               </View>
               <Text className="text-white text-3xl font-bold">
-                Hey {user?.firstName}! 👋
+                {getGreeting()}, {user?.firstName}! 👋
               </Text>
               <Text className="text-white/60 text-sm mt-1">
                 Ready for today's hair care routine?
@@ -172,6 +171,37 @@ export default function HomeScreen() {
             </LinearGradient>
           </ImageBackground>
         </View>
+
+        {/* ── NETWORK ERROR BANNER ── */}
+        {hasCriticalError && (
+          <TouchableOpacity
+            onPress={() => queryClient.refetchQueries({ queryKey: ["routine"] })}
+            style={{
+              marginHorizontal: 16,
+              marginBottom: 12,
+              backgroundColor: "rgba(239,68,68,0.12)",
+              borderWidth: 1,
+              borderColor: "rgba(239,68,68,0.3)",
+              borderRadius: 16,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <Text style={{ fontSize: 18 }}>⚠️</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: "600" }}>
+                Couldn't load some data
+              </Text>
+              <Text style={{ color: "rgba(255,255,255,0.45)", fontSize: 11, marginTop: 2 }}>
+                Check your connection · Tap to retry
+              </Text>
+            </View>
+            <Text style={{ color: "#D2994A", fontSize: 12, fontWeight: "700" }}>Retry →</Text>
+          </TouchableOpacity>
+        )}
 
         {/* ── OPTION B: Featured card + 2 small cards ── */}
         <View style={{ paddingHorizontal: 16, marginBottom: 20, gap: 12 }}>
@@ -235,18 +265,51 @@ export default function HomeScreen() {
                     )}
                   </View>
                 ) : (
-                  <Text style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, marginBottom: 16 }}>
-                    No routines set up yet — tap to add some 💆‍♀️
-                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => router.push("/profile/my-routines" as any)}
+                    style={{
+                      marginBottom: 16,
+                      borderWidth: 1.5,
+                      borderColor: "rgba(210,153,74,0.35)",
+                      borderStyle: "dashed",
+                      borderRadius: 16,
+                      padding: 16,
+                      alignItems: "center",
+                      gap: 8,
+                      backgroundColor: "rgba(210,153,74,0.06)",
+                    }}
+                  >
+                    <Text style={{ fontSize: 28 }}>💆‍♀️</Text>
+                    <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 14, fontWeight: "700", textAlign: "center" }}>
+                      No routines set up yet
+                    </Text>
+                    <Text style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, textAlign: "center", lineHeight: 18 }}>
+                      Build your personalized daily routine{"\n"}and start your hair care journey
+                    </Text>
+                    <View style={{
+                      marginTop: 4,
+                      backgroundColor: "#D2994A",
+                      borderRadius: 20,
+                      paddingHorizontal: 16,
+                      paddingVertical: 7,
+                    }}>
+                      <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700" }}>
+                        Choose My Routines →
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
                 )}
 
                 {/* CTA */}
+                {todayRoutines.length > 0 && (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                   <Text style={{ color: "#D2994A", fontSize: 13, fontWeight: "700" }}>
-                    {todayRoutines.length > 0 ? "View & complete all" : "Set up routines"}
+                    View & complete all
                   </Text>
                   <Text style={{ color: "#D2994A", fontSize: 13 }}>→</Text>
                 </View>
+                )}
               </LinearGradient>
           </TouchableOpacity>
 
@@ -423,6 +486,17 @@ export default function HomeScreen() {
                 <Skeleton key={i} height={140} width={220} rounded="lg" />
               ))}
             </ScrollView>
+          ) : recsError ? (
+            <TouchableOpacity
+              onPress={() => queryClient.refetchQueries({ queryKey: ["recommendations", "products", "home"] })}
+              className="mx-4 bg-hair-bg-dark rounded-2xl px-5 py-4 border border-white/10 flex-row items-center gap-3"
+            >
+              <Text style={{ fontSize: 20 }}>🔄</Text>
+              <View style={{ flex: 1 }}>
+                <Text className="text-white/70 text-sm font-semibold">Couldn't load recommendations</Text>
+                <Text className="text-white/40 text-xs mt-0.5">Tap to retry</Text>
+              </View>
+            </TouchableOpacity>
           ) : recsData?.data && recsData.data.length > 0 ? (
             <ScrollView
               horizontal
@@ -504,56 +578,98 @@ export default function HomeScreen() {
                 <Skeleton key={i} height={200} width={130} rounded="lg" />
               ))}
             </ScrollView>
+          ) : communityError ? (
+            <TouchableOpacity
+              onPress={() => queryClient.refetchQueries({ queryKey: ["community", "groups", "home"] })}
+              className="mx-4 bg-hair-bg-dark rounded-2xl px-5 py-4 border border-white/10 flex-row items-center gap-3"
+            >
+              <Text style={{ fontSize: 20 }}>🔄</Text>
+              <View style={{ flex: 1 }}>
+                <Text className="text-white/70 text-sm font-semibold">Couldn't load community</Text>
+                <Text className="text-white/40 text-xs mt-0.5">Tap to retry</Text>
+              </View>
+            </TouchableOpacity>
           ) : communityData?.data && communityData.data.length > 0 ? (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ paddingHorizontal: 24, gap: 16 }}
             >
-              {communityData.data.slice(0, 3).map((group) => (
-                <TouchableOpacity
-                  key={group.id}
-                  onPress={() =>
-                    router.push(`/community/groups/${group.id}` as any)
-                  }
-                  activeOpacity={0.9}
-                >
-                  <View className="w-72 h-40 rounded-3xl overflow-hidden border border-hair-gold/30">
-                    <Image
-                      source={{
-                        uri:
-                          group.coverUrl ||
-                          "https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?w=800",
-                      }}
-                      className="absolute inset-0 w-full h-full"
-                      resizeMode="cover"
-                    />
-                    <LinearGradient
-                      colors={[
-                        "rgba(0,0,0,0.1)",
-                        "rgba(0,0,0,0.8)",
-                        "rgba(0,0,0,1)",
-                      ]}
-                      className="absolute inset-0"
-                    />
-                    <View className="p-5 flex-1 justify-between">
-                      <View className="self-end bg-black/60 px-3 py-1 rounded-full border border-white/10">
-                        <Text className="text-hair-gold text-[10px] font-bold uppercase tracking-wider">
-                          {group.category}
-                        </Text>
-                      </View>
-                      <View>
-                        <Text className="text-white text-lg font-bold mb-1">
-                          {group.name}
-                        </Text>
-                        <Text className="text-white/70 text-xs">
-                          � {group.memberCount} members
-                        </Text>
+              {communityData.data.slice(0, 3).map((group) => {
+                const isActive = group.lastPostAt
+                  ? (Date.now() - new Date(group.lastPostAt).getTime()) < 24 * 60 * 60 * 1000
+                  : false;
+                const lastPostLabel = (() => {
+                  if (!group.lastPostAt) return "No posts yet";
+                  const diff = Date.now() - new Date(group.lastPostAt).getTime();
+                  const mins = Math.floor(diff / 60000);
+                  const hours = Math.floor(diff / 3600000);
+                  const days = Math.floor(diff / 86400000);
+                  if (mins < 60) return `${mins}m ago`;
+                  if (hours < 24) return `${hours}h ago`;
+                  return `${days}d ago`;
+                })();
+
+                return (
+                  <TouchableOpacity
+                    key={group.id}
+                    onPress={() => router.push(`/community/groups/${group.id}` as any)}
+                    activeOpacity={0.9}
+                  >
+                    <View className="w-72 h-44 rounded-3xl overflow-hidden border border-hair-gold/30">
+                      <Image
+                        source={{ uri: group.coverUrl || "https://images.unsplash.com/photo-1633681926022-84c23e8cb2d6?w=800" }}
+                        className="absolute inset-0 w-full h-full"
+                        resizeMode="cover"
+                      />
+                      <LinearGradient
+                        colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.75)", "rgba(0,0,0,0.95)"]}
+                        className="absolute inset-0"
+                      />
+                      <View className="p-4 flex-1 justify-between">
+                        {/* Top row — category + active badge */}
+                        <View className="flex-row items-center justify-between">
+                          <View className="bg-black/60 px-3 py-1 rounded-full border border-white/10">
+                            <Text className="text-hair-gold text-[10px] font-bold uppercase tracking-wider">
+                              {group.category}
+                            </Text>
+                          </View>
+                          {isActive && (
+                            <View className="flex-row items-center gap-1 bg-green-500/20 px-2 py-1 rounded-full border border-green-500/30">
+                              <View className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                              <Text className="text-green-400 text-[10px] font-bold">Active</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Bottom — name + stats */}
+                        <View>
+                          <Text className="text-white text-lg font-bold mb-2" numberOfLines={1}>
+                            {group.name}
+                          </Text>
+                          <View className="flex-row items-center gap-3">
+                            <View className="flex-row items-center gap-1">
+                              <Text className="text-white/60 text-xs">👥</Text>
+                              <Text className="text-white/70 text-xs font-semibold">
+                                {(group.memberCount ?? 0).toLocaleString()}
+                              </Text>
+                            </View>
+                            <View className="w-px h-3 bg-white/20" />
+                            <View className="flex-row items-center gap-1">
+                              <Text className="text-white/60 text-xs">💬</Text>
+                              <Text className="text-white/70 text-xs font-semibold">
+                                {(group.postCount ?? 0).toLocaleString()} posts
+                              </Text>
+                            </View>
+                            <View className="w-px h-3 bg-white/20" />
+                            <Text className="text-white/50 text-xs">{lastPostLabel}</Text>
+                          </View>
+                        </View>
                       </View>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                  </TouchableOpacity>
+                );
+              })}
             </ScrollView>
           ) : null}
         </View>

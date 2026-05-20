@@ -1,17 +1,19 @@
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  Image, RefreshControl, Alert, KeyboardAvoidingView, Platform,
+  Image, RefreshControl, KeyboardAvoidingView, Platform, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuthStore } from '../../../../../store/authStore';
 import { communityApi, CommunityPost } from '../../../../../lib/api/community';
 import { Avatar } from '../../../../../components/ui/Avatar';
 import { Button } from '../../../../../components/ui/Button';
 import { Skeleton, SkeletonCard } from '../../../../../components/ui/Skeleton';
 import { EmptyState } from '../../../../../components/shared/EmptyState';
+import { useToast } from '../../../../../components/ui/Toast';
 
 function timeAgo(date: string): string {
   const diff = Date.now() - new Date(date).getTime();
@@ -85,20 +87,45 @@ export default function GroupDetailScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+  const { show: showToast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
   const [postText, setPostText] = useState('');
+  const [postImages, setPostImages] = useState<string[]>([]);
   const [showCompose, setShowCompose] = useState(false);
+
+  const pickPostImage = async () => {
+    if (postImages.length >= 4) {
+      showToast('Maximum 4 images per post', 'error');
+      return;
+    }
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Photo library access is needed to attach images');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPostImages(prev => [...prev, result.assets[0].uri]);
+    }
+  };
 
   const { data: groupData, isLoading: groupLoading } = useQuery({
     queryKey: ['community', 'group', id],
     queryFn: () => communityApi.getGroup(id),
     enabled: !!id,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: postsData, isLoading: postsLoading } = useQuery({
     queryKey: ['community', 'posts', id],
     queryFn: () => communityApi.getGroupPosts(id),
     enabled: !!id,
+    staleTime: 60 * 1000, // 1 min — posts change more frequently
   });
 
   const joinMutation = useMutation({
@@ -111,27 +138,55 @@ export default function GroupDetailScreen() {
   });
 
   const createPostMutation = useMutation({
-    mutationFn: () => communityApi.createPost(id, { content: postText.trim() }),
+    mutationFn: () => communityApi.createPost(id, {
+      content: postText.trim(),
+      imageUrls: postImages.length > 0 ? postImages : undefined,
+    }),
     onSuccess: () => {
       setPostText('');
+      setPostImages([]);
       setShowCompose(false);
       queryClient.invalidateQueries({ queryKey: ['community', 'posts', id] });
     },
-    onError: () => Alert.alert('Error', 'Failed to post. Please try again.'),
+    onError: () => showToast('Failed to post. Please try again.', 'error'),
   });
 
   const likeMutation = useMutation({
     mutationFn: (postId: string) => communityApi.likePost(postId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['community', 'posts', id] }),
+    onMutate: async (postId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['community', 'posts', id] });
+      const previous = queryClient.getQueryData(['community', 'posts', id]);
+      queryClient.setQueryData<any>(['community', 'posts', id], (old: any) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((p: any) =>
+            p.id === postId
+              ? { ...p, likes: p.likes + 1, isLiked: true }
+              : p
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _postId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['community', 'posts', id], context.previous);
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['community', 'posts', id] }),
   });
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['community', 'group', id] }),
-      queryClient.invalidateQueries({ queryKey: ['community', 'posts', id] }),
-    ]);
-    setRefreshing(false);
+    try {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['community', 'group', id] }),
+        queryClient.refetchQueries({ queryKey: ['community', 'posts', id] }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const group = groupData?.data;
@@ -222,12 +277,48 @@ export default function GroupDetailScreen() {
                     style={{ minHeight: 80, textAlignVertical: 'top' }}
                     autoFocus
                   />
-                  <View className="flex-row gap-3">
+                  {/* Image previews */}
+                  {postImages.length > 0 && (
+                    <View className="flex-row flex-wrap gap-2 mb-3">
+                      {postImages.map((uri, i) => (
+                        <View key={i} className="relative">
+                          <Image
+                            source={{ uri }}
+                            style={{ width: 72, height: 72, borderRadius: 10 }}
+                            resizeMode="cover"
+                          />
+                          <TouchableOpacity
+                            onPress={() => setPostImages(prev => prev.filter((_, idx) => idx !== i))}
+                            style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.7)', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>✕</Text>
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                      {postImages.length < 4 && (
+                        <TouchableOpacity
+                          onPress={pickPostImage}
+                          style={{ width: 72, height: 72, borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(210,153,74,0.3)', borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <Text style={{ fontSize: 20 }}>+</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  )}
+                  {/* Bottom toolbar */}
+                  <View className="flex-row items-center gap-2">
+                    <TouchableOpacity
+                      onPress={pickPostImage}
+                      disabled={postImages.length >= 4}
+                      className="w-9 h-9 rounded-xl bg-hair-bg-light items-center justify-center"
+                    >
+                      <Text className="text-base">🖼️</Text>
+                    </TouchableOpacity>
+                    <View className="flex-1" />
                     <Button
                       variant="ghost"
                       size="sm"
-                      onPress={() => { setShowCompose(false); setPostText(''); }}
-                      className="flex-1"
+                      onPress={() => { setShowCompose(false); setPostText(''); setPostImages([]); }}
                     >
                       Cancel
                     </Button>
@@ -235,9 +326,8 @@ export default function GroupDetailScreen() {
                       variant="primary"
                       size="sm"
                       onPress={() => createPostMutation.mutate()}
-                      disabled={!postText.trim() || createPostMutation.isPending}
+                      disabled={(!postText.trim() && postImages.length === 0) || createPostMutation.isPending}
                       isLoading={createPostMutation.isPending}
-                      className="flex-1"
                     >
                       Post
                     </Button>

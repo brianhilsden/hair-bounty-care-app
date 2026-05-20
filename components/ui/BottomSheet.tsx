@@ -2,8 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import {
   Animated,
   Dimensions,
+  KeyboardAvoidingView,
   Modal,
   PanResponder,
+  Platform,
   Text,
   TouchableWithoutFeedback,
   View,
@@ -83,41 +85,45 @@ export const BottomSheet = ({
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
-      {/* Backdrop */}
-      <TouchableWithoutFeedback onPress={onClose}>
-        <Animated.View
-          className="flex-1 bg-black/60"
-          style={{ opacity: backdropOpacity }}
-        />
-      </TouchableWithoutFeedback>
-
-      {/* Sheet */}
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: snapHeight,
-            transform: [{ translateY }],
-          },
-        ]}
-        className="bg-hair-bg-dark rounded-t-3xl border-t border-hair-gold/20"
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Drag handle */}
-        <View {...panResponder.panHandlers} className="items-center pt-3 pb-2">
-          <View className="w-10 h-1 rounded-full bg-hair-gold/30" />
-        </View>
+        {/* Backdrop */}
+        <TouchableWithoutFeedback onPress={onClose}>
+          <Animated.View
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', opacity: backdropOpacity }}
+          />
+        </TouchableWithoutFeedback>
 
-        {title && (
-          <View className="px-6 pb-4 border-b border-hair-gold/10">
-            <Text className="text-white text-lg font-bold">{title}</Text>
+        {/* Sheet */}
+        <Animated.View
+          style={[
+            {
+              position: 'absolute',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: snapHeight,
+              transform: [{ translateY }],
+            },
+          ]}
+          className="bg-hair-bg-dark rounded-t-3xl border-t border-hair-gold/20"
+        >
+          {/* Drag handle */}
+          <View {...panResponder.panHandlers} className="items-center pt-3 pb-2">
+            <View className="w-10 h-1 rounded-full bg-hair-gold/30" />
           </View>
-        )}
 
-        <View className="flex-1 px-6 pt-4">{children}</View>
-      </Animated.View>
+          {title && (
+            <View className="px-6 pb-4 border-b border-hair-gold/10">
+              <Text className="text-white text-lg font-bold">{title}</Text>
+            </View>
+          )}
+
+          <View className="flex-1 px-6 pt-4">{children}</View>
+        </Animated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };

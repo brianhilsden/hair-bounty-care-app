@@ -74,7 +74,7 @@ export default function MyRoutinesScreen() {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['my-routines'] });
-      queryClient.invalidateQueries({ queryKey: ['routines', 'today'] });
+      queryClient.invalidateQueries({ queryKey: ['routine', 'today'] });
     },
   });
 
@@ -108,7 +108,7 @@ export default function MyRoutinesScreen() {
 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['my-routines'] });
-      queryClient.invalidateQueries({ queryKey: ['routines', 'today'] });
+      queryClient.invalidateQueries({ queryKey: ['routine', 'today'] });
     },
   });
 

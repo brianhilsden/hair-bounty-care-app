@@ -140,8 +140,6 @@ export default function GroupChatScreen() {
               {group?.memberCount ? `${group.memberCount} members` : 'Loading...'}
             </Text>
           </View>
-          {/* Polling indicator */}
-          <View className="w-2 h-2 rounded-full bg-success opacity-70" />
         </View>
 
         {/* Messages */}

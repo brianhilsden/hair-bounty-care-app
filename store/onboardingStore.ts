@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface OnboardingState {
   // Whether launched from profile edit (vs first-time onboarding)
@@ -37,26 +39,9 @@ interface OnboardingState {
   reset: () => void;
 }
 
-export const useOnboardingStore = create<OnboardingState>((set) => ({
-  isEditMode: false,
-  ageGroup: null,
-  gender: null,
-  hairPhotoUri: null,
-  curlPattern: null,
-  density: null,
-  porosity: null,
-  strandThickness: null,
-  scalpType: null,
-  goals: [],
-
-  setEditMode: (value) => set({ isEditMode: value }),
-  setAgeGroup: (ageGroup) => set({ ageGroup }),
-  setGender: (gender) => set({ gender }),
-  setHairPhoto: (uri) => set({ hairPhotoUri: uri }),
-  setHairQuiz: (data) => set(data),
-  setGoals: (goals) => set({ goals }),
-  reset: () =>
-    set({
+export const useOnboardingStore = create<OnboardingState>()(
+  persist(
+    (set) => ({
       isEditMode: false,
       ageGroup: null,
       gender: null,
@@ -67,5 +52,42 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
       strandThickness: null,
       scalpType: null,
       goals: [],
+
+      setEditMode: (value) => set({ isEditMode: value }),
+      setAgeGroup: (ageGroup) => set({ ageGroup }),
+      setGender: (gender) => set({ gender }),
+      setHairPhoto: (uri) => set({ hairPhotoUri: uri }),
+      setHairQuiz: (data) => set(data),
+      setGoals: (goals) => set({ goals }),
+      reset: () =>
+        set({
+          isEditMode: false,
+          ageGroup: null,
+          gender: null,
+          hairPhotoUri: null,
+          curlPattern: null,
+          density: null,
+          porosity: null,
+          strandThickness: null,
+          scalpType: null,
+          goals: [],
+        }),
     }),
-}));
+    {
+      name: 'onboarding-store',
+      storage: createJSONStorage(() => AsyncStorage),
+      // Don't persist isEditMode — always start fresh on app launch
+      partialize: (state) => ({
+        ageGroup: state.ageGroup,
+        gender: state.gender,
+        hairPhotoUri: state.hairPhotoUri,
+        curlPattern: state.curlPattern,
+        density: state.density,
+        porosity: state.porosity,
+        strandThickness: state.strandThickness,
+        scalpType: state.scalpType,
+        goals: state.goals,
+      }),
+    }
+  )
+);

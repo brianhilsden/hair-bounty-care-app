@@ -73,8 +73,11 @@ export default function OrdersScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['orders'] });
-    setRefreshing(false);
+    try {
+      await queryClient.refetchQueries({ queryKey: ['orders'] });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const orders: Order[] = (data?.data as any) ?? [];

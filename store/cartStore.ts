@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface CartItem {
   productId: string;
@@ -26,44 +28,58 @@ interface CartState {
   totalAmount: () => number;
 }
 
-export const useCartStore = create<CartState>((set, get) => ({
-  items: [],
-  deliveryAddress: '',
-  deliveryNotes: '',
+export const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      deliveryAddress: '',
+      deliveryNotes: '',
 
-  addItem: (item) => {
-    const existing = get().items.find(i => i.productId === item.productId);
-    if (existing) {
-      set({
-        items: get().items.map(i =>
-          i.productId === item.productId ? { ...i, quantity: i.quantity + 1 } : i
-        ),
-      });
-    } else {
-      set({ items: [...get().items, { ...item, quantity: 1 }] });
+      addItem: (item) => {
+        const existing = get().items.find(i => i.productId === item.productId);
+        if (existing) {
+          set({
+            items: get().items.map(i =>
+              i.productId === item.productId ? { ...i, quantity: i.quantity + 1 } : i
+            ),
+          });
+        } else {
+          set({ items: [...get().items, { ...item, quantity: 1 }] });
+        }
+      },
+
+      removeItem: (productId) =>
+        set({ items: get().items.filter(i => i.productId !== productId) }),
+
+      updateQuantity: (productId, quantity) => {
+        if (quantity <= 0) {
+          get().removeItem(productId);
+          return;
+        }
+        set({
+          items: get().items.map(i =>
+            i.productId === productId ? { ...i, quantity } : i
+          ),
+        });
+      },
+
+      setDeliveryAddress: (deliveryAddress) => set({ deliveryAddress }),
+      setDeliveryNotes: (deliveryNotes) => set({ deliveryNotes }),
+
+      clear: () => set({ items: [], deliveryAddress: '', deliveryNotes: '' }),
+
+      totalItems: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
+      totalAmount: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
+    }),
+    {
+      name: 'cart-store',
+      storage: createJSONStorage(() => AsyncStorage),
+      // Don't persist derived functions — only data
+      partialize: (state) => ({
+        items: state.items,
+        deliveryAddress: state.deliveryAddress,
+        deliveryNotes: state.deliveryNotes,
+      }),
     }
-  },
-
-  removeItem: (productId) =>
-    set({ items: get().items.filter(i => i.productId !== productId) }),
-
-  updateQuantity: (productId, quantity) => {
-    if (quantity <= 0) {
-      get().removeItem(productId);
-      return;
-    }
-    set({
-      items: get().items.map(i =>
-        i.productId === productId ? { ...i, quantity } : i
-      ),
-    });
-  },
-
-  setDeliveryAddress: (deliveryAddress) => set({ deliveryAddress }),
-  setDeliveryNotes: (deliveryNotes) => set({ deliveryNotes }),
-
-  clear: () => set({ items: [], deliveryAddress: '', deliveryNotes: '' }),
-
-  totalItems: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
-  totalAmount: () => get().items.reduce((sum, i) => sum + i.price * i.quantity, 0),
-}));
+  )
+);

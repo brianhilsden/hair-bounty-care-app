@@ -118,25 +118,31 @@ export default function LeaderboardScreen() {
   const { data: boardData, isLoading: boardLoading } = useQuery({
     queryKey: ['leaderboard', period],
     queryFn: () => gamificationApi.getLeaderboard(period, 50),
+    staleTime: 5 * 60 * 1000, // 5 min — rankings shift slowly
   });
 
   const { data: myRankData } = useQuery({
     queryKey: ['rank', 'me', period],
     queryFn: () => gamificationApi.getUserRank(period),
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: badgesData } = useQuery({
     queryKey: ['badges', 'me'],
     queryFn: gamificationApi.getUserBadges,
+    staleTime: 10 * 60 * 1000,
   });
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['leaderboard', period] }),
-      queryClient.invalidateQueries({ queryKey: ['rank', 'me', period] }),
-    ]);
-    setRefreshing(false);
+    try {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['leaderboard', period] }),
+        queryClient.refetchQueries({ queryKey: ['rank', 'me', period] }),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const entries = boardData?.data ?? [];
