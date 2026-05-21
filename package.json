@@ -14,17 +14,19 @@
     "@tanstack/react-query": "^5.90.21",
     "ai": "^6.0.116",
     "axios": "^1.13.5",
-    "expo": "~54.0.33",
+    "expo": "~54.0.34",
     "expo-blur": "~15.0.8",
     "expo-camera": "^17.0.10",
+    "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.21",
     "expo-device": "~8.0.10",
     "expo-font": "^14.0.11",
     "expo-haptics": "~15.0.8",
     "expo-image": "^3.0.11",
-    "expo-image-picker": "^17.0.10",
+    "expo-image-picker": "~17.0.11",
     "expo-linear-gradient": "~15.0.8",
-    "expo-notifications": "~0.32.16",
+    "expo-linking": "~8.0.12",
+    "expo-notifications": "~0.32.17",
     "expo-router": "^6.0.23",
     "expo-secure-store": "^15.0.8",
     "expo-splash-screen": "^31.0.13",
@@ -55,5 +57,10 @@
     "babel-preset-expo": "^54.0.10",
     "typescript": "~5.9.2"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "install": {
+      "exclude": ["react-native-worklets"]
+    }
+  }
 }
